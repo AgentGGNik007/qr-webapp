@@ -95,28 +95,24 @@ $inviteUrl = getConfig('discord_invite_url');
       <div class="card-header">
         <h2 class="card-title">Discord Invite URL</h2>
       </div>
-      <div class="card-body" style="gap:0.5rem;">
-
-        <?php if ($inviteUrl): ?>
-          <div class="url-pill" style="font-size:0.85rem;">
-            <?= htmlspecialchars($inviteUrl, ENT_QUOTES, 'UTF-8') ?>
-          </div>
-        <?php else: ?>
-          <p style="color:var(--text-muted); font-size:0.85rem; margin:0;">Noch keine URL gesetzt.</p>
-        <?php endif; ?>
-
+      <div class="card-body" style="gap:0.75rem;">
         <div class="url-form">
           <input
             type="url"
             id="url-input"
             class="url-input"
             placeholder="https://discord.gg/..."
-            value="<?= htmlspecialchars($inviteUrl, ENT_QUOTES, 'UTF-8') ?>"
           >
           <button id="btn-save-url" class="btn btn-primary" type="button">Speichern</button>
         </div>
-        <p class="url-status" id="url-status" style="margin:0; min-height:1.2em;"></p>
-
+        <div style="font-size:0.8rem; color:var(--text-muted); text-align:center;">
+          <?php if ($inviteUrl): ?>
+            Aktuelle URL: <span style="color:var(--text-soft);"><?= htmlspecialchars($inviteUrl, ENT_QUOTES, 'UTF-8') ?></span>
+          <?php else: ?>
+            <span style="font-style:italic;">Noch keine URL gesetzt</span>
+          <?php endif; ?>
+        </div>
+        <div id="url-status" style="text-align:center; min-height:1.5rem; display:flex; align-items:center; justify-content:center; gap:0.4rem; font-size:0.9rem;"></div>
         <div class="url-check-row" style="margin-top:0; padding-top:0.5rem;">
           <div class="url-check-status">
             <span class="url-check-dot unknown" id="url-dot"></span>
@@ -125,7 +121,6 @@ $inviteUrl = getConfig('discord_invite_url');
           <button class="btn" id="btn-check-url" type="button">Jetzt prüfen</button>
           <span class="url-check-time" id="url-check-time"></span>
         </div>
-
       </div>
     </section>
 
@@ -343,7 +338,7 @@ $inviteUrl = getConfig('discord_invite_url');
     try {
       const res  = await fetch('/api/invite-url.php');
       const data = await res.json();
-      const now  = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+      const now  = new Date().toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
       setUrlCheckStatus(data.reachable, now);
     } catch (_) {
       urlCheckLabel.textContent = 'Fehler';
@@ -357,8 +352,7 @@ $inviteUrl = getConfig('discord_invite_url');
 
   btnSaveUrl.addEventListener('click', async () => {
     const url = urlInput.value.trim();
-    urlStatus.textContent = 'Wird geprüft…';
-    urlStatus.style.color = 'var(--text-muted)';
+    urlStatus.innerHTML = '<span style="color:var(--text-muted);">Wird geprüft…</span>';
     try {
       const res  = await fetch('/api/invite-url.php', {
         method: 'POST',
@@ -367,18 +361,16 @@ $inviteUrl = getConfig('discord_invite_url');
       });
       const data = await res.json();
       if (data.success) {
-        urlStatus.textContent = '✓ URL gespeichert';
-        urlStatus.style.color = 'var(--status-success)';
+        urlStatus.innerHTML = '<span style="color:var(--status-success); font-size:1.1rem;">✓</span><span style="color:var(--status-success);">URL gespeichert</span>';
         const pill = document.querySelector('.url-pill');
         if (pill) pill.textContent = url;
+        urlInput.value = '';
         checkUrl();
       } else {
-        urlStatus.textContent = '✗ ' + (data.error ?? 'Fehler');
-        urlStatus.style.color = 'var(--status-error)';
+        urlStatus.innerHTML = '<span style="color:var(--status-error); font-size:1.1rem;">✗</span><span style="color:var(--status-error);">' + (data.error ?? 'Fehler') + '</span>';
       }
     } catch (_) {
-      urlStatus.textContent = '✗ Verbindungsfehler';
-      urlStatus.style.color = 'var(--status-error)';
+      urlStatus.innerHTML = '<span style="color:var(--status-error); font-size:1.1rem;">✗</span><span style="color:var(--status-error);">Verbindungsfehler</span>';
     }
   });
 

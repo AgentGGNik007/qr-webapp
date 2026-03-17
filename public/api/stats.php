@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 $apiKey   = 'webapp-api-key-version-0-0-0';
-$baseUrl  = 'http://localhost:8081/rest/v3';
+$baseUrl  = 'https://shlink.qr.framenode.net/rest/v3';
 $slug     = 'join';
 
 function shlinkGet(string $url, string $apiKey): ?array {
