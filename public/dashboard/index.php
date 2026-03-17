@@ -42,7 +42,14 @@ $inviteUrl = getConfig('discord_invite_url');
       <div class="chart-controls">
         <div class="chart-nav">
           <button class="chart-nav-btn" id="chart-prev" type="button" aria-label="Zurück">&#8592;</button>
-          <span class="chart-period" id="chart-period-label"></span>
+          <div class="period-dropdown-wrap">
+            <button class="period-btn" id="period-main-btn" type="button" aria-haspopup="listbox" aria-expanded="false"></button>
+            <div class="period-drum" id="period-main-dd" role="listbox" aria-label="Zeitraum wählen"></div>
+          </div>
+          <div class="period-dropdown-wrap">
+            <button class="period-btn" id="period-year-btn" type="button" aria-haspopup="listbox" aria-expanded="false"></button>
+            <div class="period-drum" id="period-year-dd" role="listbox" aria-label="Jahr wählen"></div>
+          </div>
           <button class="chart-nav-btn" id="chart-next" type="button" aria-label="Vor">&#8594;</button>
         </div>
         <div class="chart-toggle">
@@ -97,12 +104,7 @@ $inviteUrl = getConfig('discord_invite_url');
       </div>
       <div class="card-body" style="gap:0.75rem;">
         <div class="url-form">
-          <input
-            type="url"
-            id="url-input"
-            class="url-input"
-            placeholder="https://discord.gg/..."
-          >
+          <input type="url" id="url-input" class="url-input" placeholder="https://discord.gg/...">
           <button id="btn-save-url" class="btn btn-primary" type="button">Speichern</button>
         </div>
         <div style="font-size:0.8rem; color:var(--text-muted); text-align:center;">
@@ -195,32 +197,14 @@ $inviteUrl = getConfig('discord_invite_url');
 (() => {
   "use strict";
 
-  const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  // ── Chart ─────────────────────────────────────────────
   let chartMode   = 'month';
   let chartOffset = 0;
   let chartInst   = null;
+  let allPeriods  = [];
 
   function getChartColor() {
     return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#93C5FD';
-  }
-
-  function getPeriodTitle() {
-    const now = new Date();
-    if (chartMode === 'month') {
-      const d = new Date(now.getFullYear(), now.getMonth() + chartOffset, 1);
-      return MONTHS_DE[d.getMonth()] + ' ' + d.getFullYear();
-    } else {
-      const d = new Date(now);
-      d.setDate(d.getDate() + chartOffset * 7);
-      // Sonntag dieser Woche
-      const day = d.getDay(); // 0=So, 6=Sa
-      const sunday = new Date(d);
-      sunday.setDate(d.getDate() - day);
-      const saturday = new Date(sunday);
-      saturday.setDate(sunday.getDate() + 6);
-      const fmt = (dt) => dt.getDate() + '.' + (dt.getMonth()+1) + '.';
-      return fmt(sunday) + ' – ' + fmt(saturday);
-    }
   }
 
   function drawChart(labels, values) {
@@ -239,6 +223,7 @@ $inviteUrl = getConfig('discord_invite_url');
           pointRadius: 4,
           pointHoverRadius: 6,
           tension: 0.3,
+          spanGaps: false,
           fill: true,
         }]
       },
@@ -265,31 +250,24 @@ $inviteUrl = getConfig('discord_invite_url');
   }
 
   async function renderChart() {
-    document.getElementById('chart-period-label').textContent = getPeriodTitle();
     document.getElementById('chart-next').disabled = chartOffset >= 0;
-    // Navigationsgrenze: erster erfasster Tag
-    if (window._firstDay) {
-      const first   = new Date(window._firstDay);
-      const now     = new Date();
-      let minOffset;
-      if (chartMode === 'month') {
-        minOffset = (first.getFullYear() - now.getFullYear()) * 12 + (first.getMonth() - now.getMonth());
-      } else {
-        const diffMs   = first - now;
-        const diffWeeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
-        minOffset = diffWeeks;
-      }
-      document.getElementById('chart-prev').disabled = chartOffset <= minOffset;
-    } else {
-      document.getElementById('chart-prev').disabled = chartOffset <= 0;
-    }
+    const minOffset = chartMode === 'month'
+      ? (window._minMonthOffset ?? 0)
+      : (window._minWeekOffset  ?? 0);
+    document.getElementById('chart-prev').disabled = chartOffset <= minOffset;
+
     try {
       const res  = await fetch('/api/stats.php?mode=' + chartMode + '&offset=' + chartOffset);
       const data = await res.json();
+
       document.getElementById('stat-total').textContent  = data.total  ?? '–';
       document.getElementById('stat-period').textContent = data.period ?? '–';
       document.getElementById('stat-today').textContent  = data.today  ?? '–';
-      if (data.first_day) window._firstDay = data.first_day;
+
+      if (data.min_week_offset  !== undefined) window._minWeekOffset  = data.min_week_offset;
+      if (data.min_month_offset !== undefined) window._minMonthOffset = data.min_month_offset;
+      if (data.periods) buildDropdowns(data.periods);
+
       drawChart(data.labels, data.values);
     } catch (_) {
       drawChart([], []);
@@ -298,6 +276,7 @@ $inviteUrl = getConfig('discord_invite_url');
 
   document.getElementById('chart-prev').addEventListener('click', () => { chartOffset--; renderChart(); });
   document.getElementById('chart-next').addEventListener('click', () => { chartOffset++; renderChart(); });
+
   document.getElementById('toggle-month').addEventListener('click', () => {
     chartMode = 'month'; chartOffset = 0;
     document.getElementById('toggle-month').classList.add('active');
@@ -305,6 +284,7 @@ $inviteUrl = getConfig('discord_invite_url');
     document.getElementById('stat-period-label').textContent = 'Dieser Monat';
     renderChart();
   });
+
   document.getElementById('toggle-week').addEventListener('click', () => {
     chartMode = 'week'; chartOffset = 0;
     document.getElementById('toggle-week').classList.add('active');
@@ -312,7 +292,189 @@ $inviteUrl = getConfig('discord_invite_url');
     document.getElementById('stat-period-label').textContent = 'Diese Woche';
     renderChart();
   });
-  renderChart();
+
+  // ── Period Drum Roll ──────────────────────────────────
+  const mainBtn = document.getElementById('period-main-btn');
+  const mainDD  = document.getElementById('period-main-dd');
+  const yearBtn = document.getElementById('period-year-btn');
+  const yearDD  = document.getElementById('period-year-dd');
+
+  let selectedMain = null;
+  let selectedYear = null;
+
+  function buildDrum(container, items, activeVal, onCommit) {
+    container.innerHTML = '';
+
+    const inner    = document.createElement('div');
+    inner.className = 'period-drum-inner';
+
+    const selector = document.createElement('div');
+    selector.className = 'period-drum-selector';
+    inner.appendChild(selector);
+
+    const list = document.createElement('div');
+    list.className = 'period-drum-list';
+
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.className    = 'period-drum-item' + (String(item) === String(activeVal) ? ' is-active' : '');
+      el.textContent  = String(item);
+      el.dataset.value = String(item);
+      list.appendChild(el);
+    });
+
+    inner.appendChild(list);
+    container.appendChild(inner);
+
+    // Scroll-Snap → aktives Element markieren
+    let scrollTimer;
+    list.addEventListener('scroll', () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        const idx = Math.round(list.scrollTop / 40);
+        list.querySelectorAll('.period-drum-item').forEach((el, i) => {
+          el.classList.toggle('is-active', i === idx);
+        });
+      }, 80);
+    });
+
+    // Klick auf ein Item scrollt dazu
+    list.addEventListener('click', (e) => {
+      const item = e.target.closest('.period-drum-item');
+      if (!item) return;
+      const items = [...list.querySelectorAll('.period-drum-item')];
+      const idx   = items.indexOf(item);
+      list.scrollTo({ top: idx * 40, behavior: 'smooth' });
+    });
+
+    // Pfeiltasten
+    list.setAttribute('tabindex', '0');
+    list.addEventListener('keydown', (e) => {
+      const items = [...list.querySelectorAll('.period-drum-item')];
+      const idx   = Math.round(list.scrollTop / 40);
+      if (e.key === 'ArrowDown') { e.preventDefault(); list.scrollTo({ top: (idx + 1) * 40, behavior: 'smooth' }); }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); list.scrollTo({ top: (idx - 1) * 40, behavior: 'smooth' }); }
+      if (e.key === 'Enter')     { e.preventDefault(); onCommit(items[idx]?.dataset.value); closeAll(); }
+      if (e.key === 'Escape')    { closeAll(); }
+    });
+
+    // Scroll aktiven Wert
+    const activeIdx = items.findIndex(i => String(i) === String(activeVal));
+    if (activeIdx >= 0) setTimeout(() => list.scrollTo({ top: activeIdx * 40 }), 30);
+
+    return list;
+  }
+
+  function getDrumValue(dd) {
+    const list = dd.querySelector('.period-drum-list');
+    if (!list) return null;
+    const idx  = Math.round(list.scrollTop / 40);
+    return list.querySelectorAll('.period-drum-item')[idx]?.dataset.value ?? null;
+  }
+
+  function buildDropdowns(periods) {
+    allPeriods = periods;
+    const current = periods.find(p => p.offset === chartOffset) ?? periods[0];
+
+    const mainValues = [...new Map(periods.map(p => {
+      const key = chartMode === 'month' ? p.month : p.kw_label;
+      return [key, key];
+    })).values()];
+
+    const yearValues = [...new Map(periods.map(p => [p.year, p.year])).values()];
+
+    selectedMain = chartMode === 'month' ? current.month : current.kw_label;
+    selectedYear = current.year;
+
+    mainBtn.textContent = selectedMain;
+    yearBtn.textContent = String(selectedYear);
+
+    buildDrum(mainDD, mainValues, selectedMain, (val) => {
+      if (val) { selectedMain = val; mainBtn.textContent = val; applySelection(); }
+    });
+
+    buildDrum(yearDD, yearValues, selectedYear, (val) => {
+      if (val) { selectedYear = Number(val); yearBtn.textContent = val; applySelection(); }
+    });
+  }
+
+  function applySelection() {
+    let found;
+    if (chartMode === 'month') {
+      found = allPeriods.find(p => p.month === selectedMain && p.year === selectedYear);
+    } else {
+      found = allPeriods.find(p => p.kw_label === selectedMain && p.year === selectedYear);
+    }
+    if (found) { chartOffset = found.offset; renderChart(); }
+  }
+
+  function commitAndClose(dd, btn, isYear) {
+    const val = getDrumValue(dd);
+    if (val) {
+      if (isYear) { selectedYear = Number(val); btn.textContent = val; }
+      else        { selectedMain = val;          btn.textContent = val; }
+      applySelection();
+    }
+    closeAll();
+  }
+
+  function openDrum(btn, dd) {
+    closeAll();
+    dd.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+    setTimeout(() => dd.querySelector('.period-drum-list')?.focus(), 60);
+  }
+
+  function closeAll() {
+    mainDD.classList.remove('is-open');
+    yearDD.classList.remove('is-open');
+    mainBtn.setAttribute('aria-expanded', 'false');
+    yearBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  mainBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    mainDD.classList.contains('is-open') ? commitAndClose(mainDD, mainBtn, false) : openDrum(mainBtn, mainDD);
+  });
+
+  yearBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    yearDD.classList.contains('is-open') ? commitAndClose(yearDD, yearBtn, true) : openDrum(yearBtn, yearDD);
+  });
+
+  // Klick ins Off → aktuellen Wert übernehmen
+  document.addEventListener('click', (e) => {
+    if (!mainDD.contains(e.target) && e.target !== mainBtn) {
+      if (mainDD.classList.contains('is-open')) commitAndClose(mainDD, mainBtn, false);
+    }
+    if (!yearDD.contains(e.target) && e.target !== yearBtn) {
+      if (yearDD.classList.contains('is-open')) commitAndClose(yearDD, yearBtn, true);
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      commitAndClose(mainDD, mainBtn, false);
+      commitAndClose(yearDD, yearBtn, true);
+    }
+  });
+
+  // Scroll auf Buttons (ohne Öffnen)
+  mainBtn.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const items = allPeriods.map(p => chartMode === 'month' ? p.month : p.kw_label).filter((v,i,a) => a.indexOf(v) === i);
+    const idx   = items.indexOf(selectedMain);
+    const next  = items[idx + (e.deltaY > 0 ? 1 : -1)];
+    if (next) { selectedMain = next; mainBtn.textContent = next; applySelection(); }
+  }, { passive: false });
+
+  yearBtn.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const years = [...new Set(allPeriods.map(p => p.year))];
+    const idx   = years.indexOf(selectedYear);
+    const next  = years[idx + (e.deltaY > 0 ? 1 : -1)];
+    if (next !== undefined) { selectedYear = next; yearBtn.textContent = String(next); applySelection(); }
+  }, { passive: false });
 
   // ── URL Card ──────────────────────────────────────────
   const urlInput      = document.getElementById('url-input');
@@ -339,7 +501,7 @@ $inviteUrl = getConfig('discord_invite_url');
     try {
       const res  = await fetch('/api/invite-url.php');
       const data = await res.json();
-      const now  = new Date().toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const now  = new Date().toLocaleString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
       setUrlCheckStatus(data.reachable, now);
     } catch (_) {
       urlCheckLabel.textContent = 'Fehler';
@@ -356,15 +518,13 @@ $inviteUrl = getConfig('discord_invite_url');
     urlStatus.innerHTML = '<span style="color:var(--text-muted);">Wird geprüft…</span>';
     try {
       const res  = await fetch('/api/invite-url.php', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body:    JSON.stringify({ url }),
       });
       const data = await res.json();
       if (data.success) {
         urlStatus.innerHTML = '<span style="color:var(--status-success); font-size:1.1rem;">✓</span><span style="color:var(--status-success);">URL gespeichert</span>';
-        const pill = document.querySelector('.url-pill');
-        if (pill) pill.textContent = url;
         urlInput.value = '';
         checkUrl();
       } else {
@@ -377,17 +537,14 @@ $inviteUrl = getConfig('discord_invite_url');
 
   checkUrl();
 
-  // ── Popout ────────────────────────────────────────────
+  // ── QR Popout ─────────────────────────────────────────
   const backdrop = document.getElementById('qr-popout-backdrop');
   const btnGen   = document.getElementById('btn-generate');
   const btnClose = document.getElementById('popout-close');
   const steps    = [1,2,3,4].map(n => document.getElementById('step-' + n));
   let logoTmpPath = null;
 
-  function showStep(n) {
-    steps.forEach((s, i) => s.classList.toggle('hidden', i !== n - 1));
-  }
-
+  function showStep(n) { steps.forEach((s, i) => s.classList.toggle('hidden', i !== n - 1)); }
   function openPopout() {
     backdrop.classList.remove('hidden');
     showStep(1);
@@ -397,7 +554,6 @@ $inviteUrl = getConfig('discord_invite_url');
     document.getElementById('logo-upload-wrap').style.display = 'none';
     document.getElementById('logo-file').value = '';
   }
-
   function closePopout() { backdrop.classList.add('hidden'); }
 
   btnGen.addEventListener('click', openPopout);
@@ -424,20 +580,15 @@ $inviteUrl = getConfig('discord_invite_url');
   const logoFile       = document.getElementById('logo-file');
 
   logoNo.addEventListener('click', () => {
-    logoNo.classList.add('active');
-    logoYes.classList.remove('active');
-    logoUploadWrap.style.display = 'none';
-    logoTmpPath = null;
+    logoNo.classList.add('active'); logoYes.classList.remove('active');
+    logoUploadWrap.style.display = 'none'; logoTmpPath = null;
   });
-
   logoYes.addEventListener('click', () => {
-    logoYes.classList.add('active');
-    logoNo.classList.remove('active');
+    logoYes.classList.add('active'); logoNo.classList.remove('active');
     logoUploadWrap.style.display = 'block';
   });
 
   document.getElementById('step3-back').addEventListener('click', () => showStep(2));
-
   document.getElementById('step3-next').addEventListener('click', async () => {
     if (logoYes.classList.contains('active') && logoFile.files.length > 0) {
       const formData = new FormData();
@@ -445,16 +596,9 @@ $inviteUrl = getConfig('discord_invite_url');
       try {
         const res  = await fetch('/api/logo-upload.php', { method: 'POST', body: formData });
         const data = await res.json();
-        if (data.success) {
-          logoTmpPath = data.tmp_path;
-        } else {
-          alert(data.error ?? 'Logo-Upload fehlgeschlagen');
-          return;
-        }
-      } catch (_) {
-        alert('Verbindungsfehler beim Logo-Upload');
-        return;
-      }
+        if (data.success) { logoTmpPath = data.tmp_path; }
+        else { alert(data.error ?? 'Logo-Upload fehlgeschlagen'); return; }
+      } catch (_) { alert('Verbindungsfehler beim Logo-Upload'); return; }
     }
     showStep(4);
     loadPreview();
@@ -468,9 +612,9 @@ $inviteUrl = getConfig('discord_invite_url');
     previewImg.style.display     = 'none';
     try {
       const res  = await fetch('/api/qr-preview.php', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_tmp: logoTmpPath }),
+        body:    JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_tmp: logoTmpPath }),
       });
       const data = await res.json();
       if (data.preview) {
@@ -478,38 +622,28 @@ $inviteUrl = getConfig('discord_invite_url');
         previewImg.style.display     = 'block';
         previewSpinner.style.display = 'none';
       }
-    } catch (_) {
-      previewSpinner.textContent = 'Fehler beim Laden der Vorschau';
-    }
+    } catch (_) { previewSpinner.textContent = 'Fehler beim Laden der Vorschau'; }
   }
 
   document.getElementById('step4-back').addEventListener('click', () => showStep(3));
-
   document.getElementById('step4-save').addEventListener('click', async () => {
     const btn = document.getElementById('step4-save');
     btn.textContent = 'Wird gespeichert…';
     btn.disabled    = true;
     try {
       const res  = await fetch('/api/qr-save.php', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_tmp: logoTmpPath }),
+        body:    JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_tmp: logoTmpPath }),
       });
       const data = await res.json();
-      if (data.success) {
-        closePopout();
-        window.location.reload();
-      } else {
-        alert(data.error ?? 'Fehler beim Speichern');
-        btn.textContent = 'Übernehmen';
-        btn.disabled    = false;
-      }
-    } catch (_) {
-      alert('Verbindungsfehler');
-      btn.textContent = 'Übernehmen';
-      btn.disabled    = false;
-    }
+      if (data.success) { closePopout(); window.location.reload(); }
+      else { alert(data.error ?? 'Fehler beim Speichern'); btn.textContent = 'Übernehmen'; btn.disabled = false; }
+    } catch (_) { alert('Verbindungsfehler'); btn.textContent = 'Übernehmen'; btn.disabled = false; }
   });
+
+  // Start
+  renderChart();
 
 })();
 </script>

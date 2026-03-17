@@ -29,37 +29,35 @@ function shlinkGet(string $url, string $apiKey): ?array {
 
 $mode   = $_GET['mode']   ?? 'month';
 $offset = (int)($_GET['offset'] ?? 0);
-
-$db = getDB();
+$db     = getDB();
+$now    = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+$todayStr = $now->format('Y-m-d');
 
 // Ersten erfassten Tag ermitteln
 $firstDay = $db->query("SELECT MIN(date) FROM tracking_days")->fetchColumn();
-$firstDay = $firstDay ?: date('Y-m-d');
-
-$now = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+$firstDay = $firstDay ?: $todayStr;
 
 // Zeitraum berechnen
 if ($mode === 'week') {
-    // Woche beginnt Sonntag, endet Samstag
-    // Letzten Sonntag berechnen (w=0 ist Sonntag)
-    $base  = (clone $now)->modify($offset . ' weeks');
-    $dow   = (int)$base->format('w'); // 0=So, 6=Sa
-    $start = (clone $base)->modify('-' . $dow . ' days')->setTime(0,0,0);
-    $end   = (clone $start)->modify('+6 days')->setTime(23,59,59);
+    $dow      = (int)$now->format('w');
+    $sunday   = (clone $now)->modify('-' . $dow . ' days')->modify($offset . ' weeks')->setTime(0, 0, 0);
+    $saturday = (clone $sunday)->modify('+6 days')->setTime(23, 59, 59);
+    $start    = $sunday;
+    $end      = $saturday;
+    $months_de_short = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    $startYear = $start->format('Y');
+    $endYear   = $end->format('Y');
+    $startPart = $start->format('j.') . ' ' . $months_de_short[(int)$start->format('n')-1];
+    $endPart   = $end->format('j.') . ' ' . $months_de_short[(int)$end->format('n')-1];
+    $periodTitle = $startYear === $endYear
+        ? $startPart . ' – ' . $endPart . ' ' . $endYear
+        : $startPart . ' ' . $startYear . ' – ' . $endPart . ' ' . $endYear;
 } else {
-    $start = (clone $now)->modify($offset . ' months')->modify('first day of this month')->setTime(0,0,0);
-    $end   = (clone $now)->modify($offset . ' months')->modify('last day of this month')->setTime(23,59,59);
+    $start = (clone $now)->modify($offset . ' months')->modify('first day of this month')->setTime(0, 0, 0);
+    $end   = (clone $now)->modify($offset . ' months')->modify('last day of this month')->setTime(23, 59, 59);
+    $months_de = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+    $periodTitle = $months_de[(int)$start->format('n')-1] . ' ' . $start->format('Y');
 }
-
-// Sicherstellen dass start nicht vor firstDay liegt
-$firstDayDt = new DateTime($firstDay, new DateTimeZone('Europe/Berlin'));
-if ($start < $firstDayDt) {
-    $start = $firstDayDt;
-}
-
-// Bei Wochenansicht: end darf bis Samstag in der Zukunft liegen
-// Bei Monatsansicht: end immer letzter Tag des Monats (auch zukünftig)
-// Nur tracking_days begrenzt was angezeigt wird
 
 // Gesamt-Visits aus Shlink
 $summary = shlinkGet($baseUrl . '/short-urls/' . $slug, $apiKey);
@@ -72,12 +70,9 @@ $visitsUrl = $baseUrl . '/short-urls/' . $slug . '/visits'
     . '&excludeBots=true'
     . '&itemsPerPage=1000';
 
-$visitsData = shlinkGet($visitsUrl, $apiKey);
-$visits     = $visitsData['visits']['data'] ?? [];
-
-// Visits pro Tag zählen
+$visitsData  = shlinkGet($visitsUrl, $apiKey);
+$visits      = $visitsData['visits']['data'] ?? [];
 $visitsByDay = [];
-$todayStr    = $now->format('Y-m-d');
 $todayCount  = 0;
 
 foreach ($visits as $visit) {
@@ -86,44 +81,85 @@ foreach ($visits as $visit) {
     if ($date === $todayStr) $todayCount++;
 }
 
+// Labels und Werte aufbauen
 $labels = [];
 $values = [];
 
 if ($mode === 'month') {
-    // Alle Tage des Monats anzeigen (1 bis 28/29/30/31)
     $daysInMonth = (int)$end->format('d');
-    $year        = $start->format('Y');
-    $month       = $start->format('m');
+    $year  = $start->format('Y');
+    $month = $start->format('m');
     for ($d = 1; $d <= $daysInMonth; $d++) {
         $date     = $year . '-' . $month . '-' . str_pad((string)$d, 2, '0', STR_PAD_LEFT);
         $labels[] = (string)$d;
-        $values[] = $visitsByDay[$date] ?? 0;
+        $values[] = $date <= $todayStr ? ($visitsByDay[$date] ?? 0) : null;
     }
 } else {
-    // Wochenansicht: alle 7 Tage So-Sa
     $dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
     for ($i = 0; $i < 7; $i++) {
         $dt       = (clone $start)->modify('+' . $i . ' days');
         $date     = $dt->format('Y-m-d');
         $dayIndex = (int)$dt->format('w');
         $labels[] = $dayNames[$dayIndex] . ' ' . $dt->format('d.m.');
-        $values[] = $visitsByDay[$date] ?? 0;
+        $values[] = ($date < $firstDay || $date > $todayStr) ? null : ($visitsByDay[$date] ?? 0);
     }
 }
 
-// Periode gesamt
-$periodTotal = array_sum($values);
+$periodTotal = array_sum(array_filter($values, fn($v) => $v !== null));
 
-// Navigations-Grenzen für Frontend
-$firstMonth = (new DateTime($firstDay))->format('Y-m');
-$nowMonth   = $now->format('Y-m');
+// Navigations-Grenzen berechnen
+$nowDow      = (int)$now->format('w');
+$nowSunday   = (clone $now)->modify('-' . $nowDow . ' days');
+$firstDt     = new DateTime($firstDay, new DateTimeZone('Europe/Berlin'));
+$firstDow    = (int)$firstDt->format('w');
+$firstSunday = (clone $firstDt)->modify('-' . $firstDow . ' days');
+$diffDays    = (int)$nowSunday->diff($firstSunday)->days;
+$minWeekOffset  = -1 * (int)($diffDays / 7);
+
+$firstYear      = (int)$firstDt->format('Y');
+$firstMonth     = (int)$firstDt->format('n');
+$nowYear        = (int)$now->format('Y');
+$nowMonth       = (int)$now->format('n');
+$minMonthOffset = ($firstYear - $nowYear) * 12 + ($firstMonth - $nowMonth);
+
+// Alle verfügbaren Perioden für Picker
+$months_de = $months_de ?? ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+$periods = [];
+if ($mode === 'month') {
+    for ($i = $minMonthOffset; $i <= 0; $i++) {
+        $d = (clone $now)->modify($i . ' months');
+        $periods[] = [
+            'offset' => $i,
+            'label'  => $months_de[(int)$d->format('n')-1] . ' ' . $d->format('Y'),
+            'month'  => $months_de[(int)$d->format('n')-1],
+            'year'   => (int)$d->format('Y'),
+        ];
+    }
+} else {
+    for ($i = $minWeekOffset; $i <= 0; $i++) {
+        $dowN = (int)$now->format('w');
+        $sun  = (clone $now)->modify('-' . $dowN . ' days')->modify($i . ' weeks');
+        $kw   = (int)$sun->format('W');
+        $year = (int)$sun->format('o');
+        $periods[] = [
+            'offset'   => $i,
+            'label'    => 'KW ' . $kw . ' ' . $year,
+            'kw_label' => 'KW ' . $kw,
+            'year'     => $year,
+        ];
+    }
+}
 
 echo json_encode([
-    'total'      => $total,
-    'period'     => $periodTotal,
-    'today'      => $todayCount,
-    'labels'     => $labels,
-    'values'     => $values,
-    'first_day'  => $firstDay,
-    'has_data'   => count($trackedDays) > 0,
+    'total'            => $total,
+    'period'           => $periodTotal,
+    'today'            => $todayCount,
+    'labels'           => $labels,
+    'values'           => $values,
+    'first_day'        => $firstDay,
+    'has_data'         => count($labels) > 0,
+    'period_title'     => $periodTitle,
+    'min_week_offset'  => $minWeekOffset,
+    'min_month_offset' => $minMonthOffset,
+    'periods'          => array_reverse($periods),
 ]);

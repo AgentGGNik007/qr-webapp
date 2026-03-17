@@ -993,3 +993,133 @@ html[data-theme="contrast"] .chart-toggle-btn.active { color: #000; }
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
 }
+
+
+/* =========================================================
+   Period Drum Roll Picker
+========================================================= */
+.period-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  border-radius: 0.5rem;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  min-width: 80px;
+  text-align: center;
+  transition: opacity 0.15s;
+  font-family: inherit;
+}
+
+.period-btn:hover { opacity: 0.8; }
+.period-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.period-dropdown-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.period-drum {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.85rem;
+  box-shadow: var(--shadow);
+  z-index: 100;
+  width: 160px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(0.4rem);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.period-drum.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.period-drum-inner {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+  border-radius: 0.85rem;
+}
+
+/* Fade oben und unten */
+.period-drum-inner::before,
+.period-drum-inner::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 65px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.period-drum-inner::before {
+  top: 0;
+  background: linear-gradient(to bottom, var(--surface) 20%, transparent);
+}
+
+.period-drum-inner::after {
+  bottom: 0;
+  background: linear-gradient(to top, var(--surface) 20%, transparent);
+}
+
+/* Mittlere Markierung */
+.period-drum-selector {
+  position: absolute;
+  top: 50%;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 40px;
+  transform: translateY(-50%);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 0.5rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.period-drum-list {
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  padding: 70px 0;
+  box-sizing: border-box;
+}
+
+.period-drum-list::-webkit-scrollbar { display: none; }
+
+.period-drum-item {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  scroll-snap-align: center;
+  user-select: none;
+  transition: color 0.12s, font-size 0.12s, font-weight 0.12s;
+  position: relative;
+  z-index: 3;
+}
+
+.period-drum-item.is-active {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
