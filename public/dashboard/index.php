@@ -204,63 +204,35 @@ $inviteUrl = getConfig('discord_invite_url');
     return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#93C5FD';
   }
 
-  function generatePlaceholderData(labels) {
-    return labels.map(() => Math.floor(Math.random() * 30));
-  }
-
-  function getPeriodLabels() {
-    const now = new Date();
-    if (chartMode === 'month') {
-      const d    = new Date(now.getFullYear(), now.getMonth() + chartOffset + 1, 0);
-      const days = d.getDate();
-      return Array.from({ length: days }, (_, i) => String(i + 1));
-    } else {
-      const d = new Date(now);
-      d.setDate(d.getDate() + chartOffset * 7);
-      const labels = [];
-      for (let i = 6; i >= 0; i--) {
-        const day = new Date(d);
-        day.setDate(d.getDate() - i);
-        labels.push(day.getDate() + '.' + (day.getMonth() + 1) + '.');
-      }
-      return labels;
-    }
-  }
-
   function getPeriodTitle() {
     const now = new Date();
     if (chartMode === 'month') {
       const d = new Date(now.getFullYear(), now.getMonth() + chartOffset, 1);
       return MONTHS_DE[d.getMonth()] + ' ' + d.getFullYear();
     } else {
-      const d     = new Date(now);
+      const d = new Date(now);
       d.setDate(d.getDate() + chartOffset * 7);
-      const end   = new Date(d);
-      const start = new Date(d);
-      start.setDate(d.getDate() - 6);
-      return start.getDate() + '.' + (start.getMonth()+1) + '. – ' + end.getDate() + '.' + (end.getMonth()+1) + '.';
+      // Sonntag dieser Woche
+      const day = d.getDay(); // 0=So, 6=Sa
+      const sunday = new Date(d);
+      sunday.setDate(d.getDate() - day);
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+      const fmt = (dt) => dt.getDate() + '.' + (dt.getMonth()+1) + '.';
+      return fmt(sunday) + ' – ' + fmt(saturday);
     }
   }
 
-  function renderChart() {
-    const labels = getPeriodLabels();
-    const data   = generatePlaceholderData(labels);
-    const color  = getChartColor();
-
-    document.getElementById('chart-period-label').textContent = getPeriodTitle();
-    document.getElementById('chart-next').disabled = chartOffset >= 0;
-    const minOffset = chartMode === 'month' ? -23 : -103;
-    document.getElementById('chart-prev').disabled = chartOffset <= minOffset;
-
-    const ctx = document.getElementById('stats-chart').getContext('2d');
+  function drawChart(labels, values) {
+    const color = getChartColor();
+    const ctx   = document.getElementById('stats-chart').getContext('2d');
     if (chartInst) chartInst.destroy();
-
     chartInst = new Chart(ctx, {
       type: 'line',
       data: {
         labels,
         datasets: [{
-          data,
+          data: values,
           borderColor: color,
           backgroundColor: color + '22',
           pointBackgroundColor: color,
@@ -292,9 +264,40 @@ $inviteUrl = getConfig('discord_invite_url');
     });
   }
 
+  async function renderChart() {
+    document.getElementById('chart-period-label').textContent = getPeriodTitle();
+    document.getElementById('chart-next').disabled = chartOffset >= 0;
+    // Navigationsgrenze: erster erfasster Tag
+    if (window._firstDay) {
+      const first   = new Date(window._firstDay);
+      const now     = new Date();
+      let minOffset;
+      if (chartMode === 'month') {
+        minOffset = (first.getFullYear() - now.getFullYear()) * 12 + (first.getMonth() - now.getMonth());
+      } else {
+        const diffMs   = first - now;
+        const diffWeeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
+        minOffset = diffWeeks;
+      }
+      document.getElementById('chart-prev').disabled = chartOffset <= minOffset;
+    } else {
+      document.getElementById('chart-prev').disabled = chartOffset <= 0;
+    }
+    try {
+      const res  = await fetch('/api/stats.php?mode=' + chartMode + '&offset=' + chartOffset);
+      const data = await res.json();
+      document.getElementById('stat-total').textContent  = data.total  ?? '–';
+      document.getElementById('stat-period').textContent = data.period ?? '–';
+      document.getElementById('stat-today').textContent  = data.today  ?? '–';
+      if (data.first_day) window._firstDay = data.first_day;
+      drawChart(data.labels, data.values);
+    } catch (_) {
+      drawChart([], []);
+    }
+  }
+
   document.getElementById('chart-prev').addEventListener('click', () => { chartOffset--; renderChart(); });
   document.getElementById('chart-next').addEventListener('click', () => { chartOffset++; renderChart(); });
-
   document.getElementById('toggle-month').addEventListener('click', () => {
     chartMode = 'month'; chartOffset = 0;
     document.getElementById('toggle-month').classList.add('active');
@@ -302,7 +305,6 @@ $inviteUrl = getConfig('discord_invite_url');
     document.getElementById('stat-period-label').textContent = 'Dieser Monat';
     renderChart();
   });
-
   document.getElementById('toggle-week').addEventListener('click', () => {
     chartMode = 'week'; chartOffset = 0;
     document.getElementById('toggle-week').classList.add('active');
@@ -310,7 +312,6 @@ $inviteUrl = getConfig('discord_invite_url');
     document.getElementById('stat-period-label').textContent = 'Diese Woche';
     renderChart();
   });
-
   renderChart();
 
   // ── URL Card ──────────────────────────────────────────
