@@ -5,6 +5,7 @@ $headerTitle = 'Dashboard';
 $footerLinks = [
   ['href' => '/datenschutz/',          'label' => 'Datenschutz'],
   ['href' => '/interessensabwaegung/', 'label' => 'Interessensabwägung'],
+  ['href' => '/bib/',                  'label' => 'QR-Bibliothek'],
 ];
 require __DIR__ . '/../../includes/head.php';
 ?>
