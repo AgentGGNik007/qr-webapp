@@ -1,4 +1,4 @@
-# QR-Webapp Projekt – Stand 17.03.2026 21:40 Uhr
+# QR-Webapp Projekt – Stand 17.03.2026
 
 ## Grundinfos
 - **Domain:** `qr.framenode.net`
@@ -36,12 +36,15 @@
 │   │   ├── css/app.css       # vollständiges CSS inkl. Theme-System
 │   │   ├── js/app.js         # Theme-Toggle (Cycle + Footer-Dropdown)
 │   │   └── qr/               # generierte QR-Codes (PNG + SVG, max 10)
-│   ├── bib/index.php         # QR-Bibliothek (letzte 10 QR-Codes)
-│   ├── dashboard/index.php   # Dashboard (Statistik, QR-Card, URL-Card)
-│   ├── datenschutz/index.php # Datenschutzerklärung
-│   ├── interessensabwaegung/index.php # Interessensabwägung
+│   ├── datenschutz/index.php # Datenschutzerklärung (öffentlich)
 │   ├── join/index.php        # 302 Redirect + Shlink-Tracking + Fehlerseite
-│   └── healthz.txt           # Health-Check
+│   ├── healthz.txt           # Health-Check (öffentlich)
+│   └── zero-trust/
+│       ├── bib/index.php             # QR-Bibliothek (letzte 10 QR-Codes)
+│       ├── dashboard/index.php       # Dashboard (Statistik, QR-Card, URL-Card)
+│       └── interessensabwaegung/index.php # Interessensabwägung
+├── status/
+│   └── projekt-stand.md      # Projektstand (nicht gitignored)
 └── vendor/                   # Composer (PHPMailer, endroid/qr-code)
 ```
 
@@ -75,16 +78,31 @@
 - Statistik-Dashboard mit echten Shlink-Daten
   - Monatsansicht (alle Tage 1-31, null für Zukunft)
   - Wochenansicht (So-Sa, null für Zukunft/vor firstDay)
-  - Drum-Roll-Picker für Monat/KW + Jahr (hover öffnet, commit bei off-click)
+  - Drum-Roll Picker für Monat/KW + Jahr
+  - Heute-Button (springt zur aktuellen Periode)
+  - Vergleichs-Chart (zweites Chart zum Periodenvergleich)
   - Pfeile für Navigation + Scroll auf Buttons
   - Navigationsgrenze = erster erfasster Tag in tracking_days
 - Admin-Login über Cloudflare Zero Trust (Google OIDC, 2 erlaubte E-Mails)
-- Datenschutzseite + Interessensabwägung öffentlich erreichbar
+- Datenschutzseite öffentlich erreichbar
+- Interessensabwägung nur per Zero Trust erreichbar
+
+## Routen
+| Pfad | Zugang |
+|------|--------|
+| `/` | 301 → `/datenschutz/` |
+| `/datenschutz/` | Öffentlich |
+| `/join/` | Öffentlich |
+| `/healthz.txt` | Öffentlich |
+| `/zero-trust/dashboard/` | Zero Trust |
+| `/zero-trust/bib/` | Zero Trust |
+| `/zero-trust/interessensabwaegung/` | Zero Trust |
+| `/api/*` | Zero Trust (via Cloudflare) |
 
 ## Shlink
 - Container: `shlink` (Docker)
 - Domain: `shlink.qr.framenode.net` (Apache Proxy, SSL Certbot, kein CF Proxy)
-- API-Key: `webapp-api-key-version-0-0-0`
+- API-Key: `********`
 - Short-URL Slug: `join`
 - `ANONYMIZE_REMOTE_ADDR=true`
 - `TRACK_ORPHAN_VISITS=false`
@@ -101,7 +119,7 @@ docker stop shlink && docker rm shlink && docker run -d \
   -e DEFAULT_DOMAIN=shlink.qr.framenode.net \
   -e IS_HTTPS_ENABLED=true \
   -e TZ=Europe/Berlin \
-  -e INITIAL_API_KEY=webapp-api-key-version-0-0-0 \
+  -e INITIAL_API_KEY=******** \
   -e ANONYMIZE_REMOTE_ADDR=true \
   -e TRACK_ORPHAN_VISITS=false \
   shlinkio/shlink:stable
@@ -121,38 +139,43 @@ docker stop shlink && docker rm shlink && docker run -d \
 
 ## Sicherheit
 - Cloudflare Proxy + Zero Trust (Google OIDC) als einzige Zugangskontrolle
-- Apache Origin nur für Cloudflare-IPs erreichbar (`/etc/apache2/snippets/cloudflare-allow.conf`)
+- Apache Origin nur für Cloudflare-IPs erreichbar
 - HSTS + Security-Header aktiv
-- Öffentlich erreichbar: `healthz.txt`, `datenschutz/`, `interessensabwaegung/`, `join/`
-- Nur per Zero Trust: `dashboard/`, `bib/`, `api/`, `interessensabwaegung/`
+- Keine personenbezogenen Daten in Server-Logs
+- Shlink mit `ANONYMIZE_REMOTE_ADDR=true`
 
 ## Theme-System
 - 4 Themes: `light`, `grey`, `dark`, `contrast` (WCAG AAA)
 - Reihenfolge Cycle: light → grey → dark → contrast
 - localStorage Key: `qr-webapp-theme`
-- Header: Cycle-Button mit Icon (Sonne / Halbsonne / Mond / Halbkreis)
+- Header: Cycle-Button mit Icon
 - Footer: Hover-Dropdown mit Slide-up (alle 4 Themes, Icon + Label)
+- CSS-Variable `--accent-text` für korrekten Kontrasttext auf Accent-Hintergrund
 
 ## Farbpaletten (WCAG AAA)
 ### Light (Background `#F6F6F6`)
 - Surface: `#FFFFFF` / `#F1F5F9`
 - Text: `#1F2937` / `#374151` / `#4B5563`
 - Accent: `#1D4ED8` / Hover `#1E40AF` / Focus `#F59E0B`
+- Accent-Text: `#FFFFFF`
 
 ### Dark (Background `#1D1919`)
 - Surface: `#262020` / `#2F2828`
 - Text: `#F3F4F6` / `#E5E7EB` / `#D1D5DB`
 - Accent: `#93C5FD` / Hover `#BFDBFE` / Focus `#FBBF24`
+- Accent-Text: `#000000`
 
 ### Grey (Background `#838383`)
 - Surface: `#9A9A9A` / `#8F8F8F`
 - Text: `#111827` / `#1F2937` / `#374151`
 - Accent: `#1D3A8A` / Hover `#1E3270` / Focus `#B45309`
+- Accent-Text: `#FFFFFF`
 
 ### Contrast (Background `#121212`)
 - Surface: `#1E1E1E` / `#262626`
 - Text: `#FFFFFF` / `#F5F5F5`
 - Accent: `#00E5FF` / Hover `#80F0FF` / Focus `#FFD600`
+- Accent-Text: `#000000`
 
 ## Arbeitsweise & Präferenzen
 - Antworten auf Deutsch
@@ -162,11 +185,9 @@ docker stop shlink && docker rm shlink && docker run -d \
 - Bei Unklarheiten immer nachfragen, nie raten
 
 ## Offene Punkte
-- [ ] Period Drum-Roll Picker: Hover-Open + Commit-on-off-click (letzter Schliff, nächster Chat)
-- [ ] Zugriff & DNS: Erreichbarkeit je Route definieren (public vs. Zero Trust)
-- [ ] Fallback-Handling einrichten
-- [ ] Apache Log-Anonymisierung bei Go-Live
-- [ ] QR-Code Download: zwei Varianten (mit Infotext und ohne)
+- [ ] QR-Code Download: zwei Varianten (mit Infotext und ohne) – nach Team-Absprache
+- [ ] Design-Kleinigkeiten (aufgefallen während Session)
+- [ ] Code Review + Git Push (morgen)
 
 ## Wichtige Befehle
 ```bash
@@ -187,7 +208,7 @@ crontab -u www-data -l
 
 # Shlink API testen
 curl -s https://shlink.qr.framenode.net/rest/v3/short-urls \
-  -H "X-Api-Key: webapp-api-key-version-0-0-0"
+  -H "X-Api-Key: ********"
 ```
 
 ## Datenschutz
@@ -195,6 +216,6 @@ curl -s https://shlink.qr.framenode.net/rest/v3/short-urls \
 - Cloudflare DPA gilt automatisch (Self-Service Plan)
 - Brevo DPA vorhanden
 - Verantwortlicher: Niklas Rühl
-- Datenschutzerklärung: `qr.framenode.net/datenschutz/`
-- Interessensabwägung: `qr.framenode.net/interessensabwaegung/`
+- Datenschutzerklärung: `qr.framenode.net/datenschutz/` (Stand: 17.03.2026)
+- Interessensabwägung: `qr.framenode.net/zero-trust/interessensabwaegung/`
 - Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO

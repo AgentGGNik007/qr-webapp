@@ -4,12 +4,12 @@ $title       = 'Dashboard';
 $headerTitle = 'Dashboard';
 $footerLinks = [
   ['href' => '/datenschutz/',          'label' => 'Datenschutz'],
-  ['href' => '/interessensabwaegung/', 'label' => 'Interessensabwägung'],
-  ['href' => '/bib/',                  'label' => 'QR-Bibliothek'],
+  ['href' => '/zero-trust/interessensabwaegung/', 'label' => 'Interessensabwägung'],
+  ['href' => '/zero-trust/bib/',                  'label' => 'QR-Bibliothek'],
 ];
-require __DIR__ . '/../../includes/head.php';
-require_once __DIR__ . '/../../includes/qr-generator.php';
-require_once __DIR__ . '/../../includes/config.php';
+require __DIR__ . '/../../../includes/head.php';
+require_once __DIR__ . '/../../../includes/qr-generator.php';
+require_once __DIR__ . '/../../../includes/config.php';
 
 $latestQr  = getLatestQr();
 $inviteUrl = getConfig('discord_invite_url');
@@ -21,6 +21,7 @@ $inviteUrl = getConfig('discord_invite_url');
   <section class="card">
     <div class="card-header">
       <h2 class="card-title">Statistik</h2>
+      <button class="btn" id="btn-compare" type="button">Vergleich</button>
     </div>
     <div class="card-body">
 
@@ -51,6 +52,7 @@ $inviteUrl = getConfig('discord_invite_url');
             <div class="period-drum" id="period-year-dd" role="listbox" aria-label="Jahr wählen"></div>
           </div>
           <button class="chart-nav-btn" id="chart-next" type="button" aria-label="Vor">&#8594;</button>
+          <button class="chart-nav-btn" id="chart-today" type="button" aria-label="Heute" disabled>Heute</button>
         </div>
         <div class="chart-toggle">
           <button class="chart-toggle-btn active" id="toggle-month" type="button">Monat</button>
@@ -65,6 +67,34 @@ $inviteUrl = getConfig('discord_invite_url');
     </div>
   </section>
 
+  <!-- Vergleichs-Chart -->
+  <section class="card hidden" id="compare-card">
+    <div class="card-body">
+      <div class="chart-controls">
+        <div class="chart-nav">
+          <button class="chart-nav-btn" id="cmp-prev" type="button" aria-label="Zurück">&#8592;</button>
+          <div class="period-dropdown-wrap">
+            <button class="period-btn" id="cmp-main-btn" type="button" aria-haspopup="listbox" aria-expanded="false"></button>
+            <div class="period-drum" id="cmp-main-dd" role="listbox" aria-label="Zeitraum wählen"></div>
+          </div>
+          <div class="period-dropdown-wrap">
+            <button class="period-btn" id="cmp-year-btn" type="button" aria-haspopup="listbox" aria-expanded="false"></button>
+            <div class="period-drum" id="cmp-year-dd" role="listbox" aria-label="Jahr wählen"></div>
+          </div>
+          <button class="chart-nav-btn" id="cmp-next" type="button" aria-label="Vor">&#8594;</button>
+          <button class="chart-nav-btn" id="cmp-today" type="button" aria-label="Heute" disabled>Heute</button>
+        </div>
+        <div class="chart-toggle">
+          <button class="chart-toggle-btn active" id="cmp-toggle-month" type="button">Monat</button>
+          <button class="chart-toggle-btn"        id="cmp-toggle-week"  type="button">Woche</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="cmp-chart"></canvas>
+      </div>
+    </div>
+  </section>
+
   <!-- QR + URL nebeneinander -->
   <div class="dashboard-row">
 
@@ -76,7 +106,7 @@ $inviteUrl = getConfig('discord_invite_url');
       <div class="card-body">
         <?php if ($latestQr): ?>
           <div class="qr-row">
-            <a href="/bib/" title="Zur QR-Bibliothek">
+            <a href="/zero-trust/bib/" title="Zur QR-Bibliothek">
               <img
                 src="<?= htmlspecialchars($latestQr['png'], ENT_QUOTES, 'UTF-8') ?>"
                 alt="Aktueller QR-Code"
@@ -251,6 +281,7 @@ $inviteUrl = getConfig('discord_invite_url');
 
   async function renderChart() {
     document.getElementById('chart-next').disabled = chartOffset >= 0;
+    updateTodayBtn();
     const minOffset = chartMode === 'month'
       ? (window._minMonthOffset ?? 0)
       : (window._minWeekOffset  ?? 0);
@@ -273,6 +304,17 @@ $inviteUrl = getConfig('discord_invite_url');
       drawChart([], []);
     }
   }
+
+  const todayBtn = document.getElementById('chart-today');
+
+  function updateTodayBtn() {
+    todayBtn.disabled = chartOffset >= 0;
+  }
+
+  todayBtn.addEventListener('click', () => {
+    chartOffset = 0;
+    renderChart();
+  });
 
   document.getElementById('chart-prev').addEventListener('click', () => { chartOffset--; renderChart(); });
   document.getElementById('chart-next').addEventListener('click', () => { chartOffset++; renderChart(); });
@@ -642,10 +684,214 @@ $inviteUrl = getConfig('discord_invite_url');
     } catch (_) { alert('Verbindungsfehler'); btn.textContent = 'Übernehmen'; btn.disabled = false; }
   });
 
+  // ── Vergleichs-Chart ─────────────────────────────────
+  (() => {
+    let cmpMode   = 'month';
+    let cmpOffset = 0;
+    let cmpInst   = null;
+    let cmpPeriods = [];
+    let cmpSelectedMain = null;
+    let cmpSelectedYear = null;
+    let compareVisible  = false;
+
+    const compareCard = document.getElementById('compare-card');
+    const btnCompare  = document.getElementById('btn-compare');
+
+    btnCompare.addEventListener('click', () => {
+      compareVisible = !compareVisible;
+      compareCard.classList.toggle('hidden', !compareVisible);
+      btnCompare.classList.toggle('is-active', compareVisible);
+      if (compareVisible && cmpPeriods.length === 0) renderCmp();
+    });
+
+    function updateCmpTodayBtn() {
+      document.getElementById('cmp-today').disabled = cmpOffset >= 0;
+    }
+
+    function drawCmp(labels, values) {
+      const color = getChartColor();
+      const ctx   = document.getElementById('cmp-chart').getContext('2d');
+      if (cmpInst) cmpInst.destroy();
+      cmpInst = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            borderColor: color,
+            backgroundColor: color + '22',
+            pointBackgroundColor: color,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            tension: 0.3,
+            spanGaps: false,
+            fill: true,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              grid:  { color: 'rgba(128,128,128,0.1)' },
+              ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() },
+            },
+            y: {
+              beginAtZero: true,
+              grid:  { color: 'rgba(128,128,128,0.1)' },
+              ticks: {
+                color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim(),
+                stepSize: 1,
+              },
+            }
+          }
+        }
+      });
+    }
+
+    async function renderCmp() {
+      document.getElementById('cmp-next').disabled = cmpOffset >= 0;
+      const minOffset = cmpMode === 'month'
+        ? (window._minMonthOffset ?? 0)
+        : (window._minWeekOffset  ?? 0);
+      document.getElementById('cmp-prev').disabled = cmpOffset <= minOffset;
+      updateCmpTodayBtn();
+
+      try {
+        const res  = await fetch('/api/stats.php?mode=' + cmpMode + '&offset=' + cmpOffset);
+        const data = await res.json();
+        if (data.periods) buildCmpDropdowns(data.periods);
+        drawCmp(data.labels, data.values);
+      } catch (_) {
+        drawCmp([], []);
+      }
+    }
+
+    function buildCmpDropdowns(periods) {
+      cmpPeriods = periods;
+      const current = periods.find(p => p.offset === cmpOffset) ?? periods[0];
+
+      const mainValues = [...new Map(periods.map(p => {
+        const key = cmpMode === 'month' ? p.month : p.kw_label;
+        return [key, key];
+      })).values()];
+      const yearValues = [...new Map(periods.map(p => [p.year, p.year])).values()];
+
+      cmpSelectedMain = cmpMode === 'month' ? current.month : current.kw_label;
+      cmpSelectedYear = current.year;
+
+      document.getElementById('cmp-main-btn').textContent = cmpSelectedMain;
+      document.getElementById('cmp-year-btn').textContent = String(cmpSelectedYear);
+
+      buildDrum(document.getElementById('cmp-main-dd'), mainValues, cmpSelectedMain, (val) => {
+        if (val) { cmpSelectedMain = val; document.getElementById('cmp-main-btn').textContent = val; applyCmpSelection(); }
+      });
+      buildDrum(document.getElementById('cmp-year-dd'), yearValues, cmpSelectedYear, (val) => {
+        if (val) { cmpSelectedYear = Number(val); document.getElementById('cmp-year-btn').textContent = val; applyCmpSelection(); }
+      });
+    }
+
+    function applyCmpSelection() {
+      let found;
+      if (cmpMode === 'month') {
+        found = cmpPeriods.find(p => p.month === cmpSelectedMain && p.year === cmpSelectedYear);
+      } else {
+        found = cmpPeriods.find(p => p.kw_label === cmpSelectedMain && p.year === cmpSelectedYear);
+      }
+      if (found) { cmpOffset = found.offset; renderCmp(); }
+    }
+
+    function commitCmpAndClose(dd, btn, isYear) {
+      const val = getDrumValue(dd);
+      if (val) {
+        if (isYear) { cmpSelectedYear = Number(val); btn.textContent = val; }
+        else        { cmpSelectedMain = val;          btn.textContent = val; }
+        applyCmpSelection();
+      }
+      closeAllCmp();
+    }
+
+    function closeAllCmp() {
+      document.getElementById('cmp-main-dd').classList.remove('is-open');
+      document.getElementById('cmp-year-dd').classList.remove('is-open');
+      document.getElementById('cmp-main-btn').setAttribute('aria-expanded', 'false');
+      document.getElementById('cmp-year-btn').setAttribute('aria-expanded', 'false');
+    }
+
+    function openCmpDrum(btn, dd) {
+      closeAllCmp();
+      dd.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+      setTimeout(() => dd.querySelector('.period-drum-list')?.focus(), 60);
+    }
+
+    document.getElementById('cmp-main-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dd  = document.getElementById('cmp-main-dd');
+      const btn = document.getElementById('cmp-main-btn');
+      dd.classList.contains('is-open') ? commitCmpAndClose(dd, btn, false) : openCmpDrum(btn, dd);
+    });
+
+    document.getElementById('cmp-year-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dd  = document.getElementById('cmp-year-dd');
+      const btn = document.getElementById('cmp-year-btn');
+      dd.classList.contains('is-open') ? commitCmpAndClose(dd, btn, true) : openCmpDrum(btn, dd);
+    });
+
+    document.addEventListener('click', (e) => {
+      const mainDD  = document.getElementById('cmp-main-dd');
+      const yearDD  = document.getElementById('cmp-year-dd');
+      const mainBtn = document.getElementById('cmp-main-btn');
+      const yearBtn = document.getElementById('cmp-year-btn');
+      if (!mainDD.contains(e.target) && e.target !== mainBtn) {
+        if (mainDD.classList.contains('is-open')) commitCmpAndClose(mainDD, mainBtn, false);
+      }
+      if (!yearDD.contains(e.target) && e.target !== yearBtn) {
+        if (yearDD.classList.contains('is-open')) commitCmpAndClose(yearDD, yearBtn, true);
+      }
+    });
+
+    document.getElementById('cmp-prev').addEventListener('click',  () => { cmpOffset--; renderCmp(); });
+    document.getElementById('cmp-next').addEventListener('click',  () => { cmpOffset++; renderCmp(); });
+    document.getElementById('cmp-today').addEventListener('click', () => { cmpOffset = 0; renderCmp(); });
+
+    document.getElementById('cmp-toggle-month').addEventListener('click', () => {
+      cmpMode = 'month'; cmpOffset = 0;
+      document.getElementById('cmp-toggle-month').classList.add('active');
+      document.getElementById('cmp-toggle-week').classList.remove('active');
+      renderCmp();
+    });
+
+    document.getElementById('cmp-toggle-week').addEventListener('click', () => {
+      cmpMode = 'week'; cmpOffset = 0;
+      document.getElementById('cmp-toggle-week').classList.add('active');
+      document.getElementById('cmp-toggle-month').classList.remove('active');
+      renderCmp();
+    });
+
+    document.getElementById('cmp-main-btn').addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const items = cmpPeriods.map(p => cmpMode === 'month' ? p.month : p.kw_label).filter((v,i,a) => a.indexOf(v) === i);
+      const idx   = items.indexOf(cmpSelectedMain);
+      const next  = items[idx + (e.deltaY > 0 ? 1 : -1)];
+      if (next) { cmpSelectedMain = next; document.getElementById('cmp-main-btn').textContent = next; applyCmpSelection(); }
+    }, { passive: false });
+
+    document.getElementById('cmp-year-btn').addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const years = [...new Set(cmpPeriods.map(p => p.year))];
+      const idx   = years.indexOf(cmpSelectedYear);
+      const next  = years[idx + (e.deltaY > 0 ? 1 : -1)];
+      if (next !== undefined) { cmpSelectedYear = next; document.getElementById('cmp-year-btn').textContent = String(next); applyCmpSelection(); }
+    }, { passive: false });
+  })();
+
   // Start
   renderChart();
 
 })();
 </script>
 
-<?php require __DIR__ . '/../../includes/footer.php'; ?>
+<?php require __DIR__ . '/../../../includes/footer.php'; ?>

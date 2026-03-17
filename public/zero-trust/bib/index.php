@@ -3,13 +3,13 @@ declare(strict_types=1);
 $title       = 'QR-Bibliothek';
 $headerTitle = 'QR-Bibliothek';
 $footerLinks = [
-  ['href' => '/dashboard/',            'label' => 'Dashboard'],
+  ['href' => '/zero-trust/dashboard/',            'label' => 'Dashboard'],
   ['href' => '/datenschutz/',          'label' => 'Datenschutz'],
-  ['href' => '/interessensabwaegung/', 'label' => 'Interessensabwägung'],
+  ['href' => '/zero-trust/interessensabwaegung/', 'label' => 'Interessensabwägung'],
 ];
-require __DIR__ . '/../../includes/head.php';
+require __DIR__ . '/../../../includes/head.php';
 
-require_once __DIR__ . '/../../includes/qr-generator.php';
+require_once __DIR__ . '/../../../includes/qr-generator.php';
 $library = getQrLibrary();
 ?>
 
@@ -48,4 +48,4 @@ $library = getQrLibrary();
   </div>
 </section>
 
-<?php require __DIR__ . '/../../includes/footer.php'; ?>
+<?php require __DIR__ . '/../../../includes/footer.php'; ?>

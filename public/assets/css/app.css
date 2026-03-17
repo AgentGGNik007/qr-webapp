@@ -38,6 +38,7 @@ body {
 
   --border-soft: rgba(255,255,255,0.08);
   --shadow:      0 12px 30px rgba(0,0,0,0.45);
+  --accent-text: #000000;
 }
 
 /* LIGHT */
@@ -63,6 +64,7 @@ html[data-theme="light"] {
 
   --border-soft: rgba(0,0,0,0.10);
   --shadow:      0 12px 30px rgba(0,0,0,0.12);
+  --accent-text: #FFFFFF;
 }
 
 /* DARK */
@@ -88,6 +90,7 @@ html[data-theme="dark"] {
 
   --border-soft: rgba(255,255,255,0.08);
   --shadow:      0 12px 30px rgba(0,0,0,0.45);
+  --accent-text: #000000;
 }
 
 /* GREY */
@@ -113,6 +116,7 @@ html[data-theme="grey"] {
 
   --border-soft: rgba(0,0,0,0.18);
   --shadow:      0 12px 30px rgba(0,0,0,0.22);
+  --accent-text: #FFFFFF;
 }
 
 /* HIGH CONTRAST */
@@ -138,6 +142,7 @@ html[data-theme="contrast"] {
 
   --border-soft: #FFFFFF;
   --shadow:      none;
+  --accent-text: #000000;
 }
 
 /* =========================================================
@@ -300,11 +305,7 @@ a:focus-visible {
 .btn-primary {
   border-color: transparent;
   background: var(--accent);
-  color: #FFFFFF;
-}
-
-html[data-theme="contrast"] .btn-primary {
-  color: #000000;
+  color: var(--accent-text);
 }
 
 /* =========================================================
@@ -996,6 +997,17 @@ html[data-theme="contrast"] .chart-toggle-btn.active { color: #000; }
 
 
 /* =========================================================
+   Utility
+========================================================= */
+.hidden { display: none !important; }
+.btn.is-active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: transparent;
+}
+
+
+/* =========================================================
    Period Drum Roll Picker
 ========================================================= */
 .period-btn {
@@ -1027,32 +1039,32 @@ html[data-theme="contrast"] .chart-toggle-btn.active { color: #000; }
 
 .period-drum {
   position: absolute;
-  top: calc(100% + 0.5rem);
   left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translateX(-50%) translateY(-50%);
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 0.85rem;
+  border-radius: 0.6rem;
   box-shadow: var(--shadow);
   z-index: 100;
-  width: 160px;
+  min-width: 100%;
+  width: auto;
   opacity: 0;
   pointer-events: none;
-  transform: translateX(-50%) translateY(0.4rem);
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity 0.18s ease;
 }
 
 .period-drum.is-open {
   opacity: 1;
   pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%) translateY(-50%);
 }
 
 .period-drum-inner {
   position: relative;
-  height: 180px;
+  height: 160px;
   overflow: hidden;
-  border-radius: 0.85rem;
+  border-radius: 0.6rem;
 }
 
 /* Fade oben und unten */
@@ -1062,7 +1074,7 @@ html[data-theme="contrast"] .chart-toggle-btn.active { color: #000; }
   position: absolute;
   left: 0;
   right: 0;
-  height: 65px;
+  height: 48px;
   z-index: 2;
   pointer-events: none;
 }
@@ -1081,13 +1093,13 @@ html[data-theme="contrast"] .chart-toggle-btn.active { color: #000; }
 .period-drum-selector {
   position: absolute;
   top: 50%;
-  left: 0.5rem;
-  right: 0.5rem;
-  height: 40px;
+  left: 0.25rem;
+  right: 0.25rem;
+  height: 32px;
   transform: translateY(-50%);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 0.5rem;
+  border-radius: 0.4rem;
   z-index: 1;
   pointer-events: none;
 }
@@ -1097,23 +1109,24 @@ html[data-theme="contrast"] .chart-toggle-btn.active { color: #000; }
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
   scrollbar-width: none;
-  padding: 70px 0;
+  padding: 64px 0;
   box-sizing: border-box;
 }
 
 .period-drum-list::-webkit-scrollbar { display: none; }
 
 .period-drum-item {
-  height: 40px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
+  padding: 0 0.65rem;
+  font-size: 0.9rem;
   color: var(--text-muted);
   cursor: pointer;
   scroll-snap-align: center;
   user-select: none;
-  transition: color 0.12s, font-size 0.12s, font-weight 0.12s;
+  transition: color 0.12s, font-weight 0.12s;
   position: relative;
   z-index: 3;
 }
@@ -1121,5 +1134,4 @@ html[data-theme="contrast"] .chart-toggle-btn.active { color: #000; }
 .period-drum-item.is-active {
   color: var(--text);
   font-weight: 700;
-  font-size: 1.05rem;
 }
