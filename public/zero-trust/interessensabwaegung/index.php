@@ -3,11 +3,11 @@ declare(strict_types=1);
 $title               = 'Interessenabwägung';
 $headerTitle         = 'Interessenabwägung';
 $footerLinks         = [
-  ['href' => '/dashboard/',  'label' => 'Dashboard'],
+  ['href' => '/zero-trust/dashboard/',  'label' => 'Dashboard'],
   ['href' => '/datenschutz/', 'label' => 'Datenschutz'],
 ];
 $showFooterThemeMenu = true;
-require __DIR__ . '/../../includes/head.php';
+require __DIR__ . '/../../../includes/head.php';
 ?>
 
 <section class="card privacy-card">
@@ -122,4 +122,4 @@ require __DIR__ . '/../../includes/head.php';
   </div>
 </section>
 
-<?php require __DIR__ . '/../../includes/footer.php'; ?>
+<?php require __DIR__ . '/../../../includes/footer.php'; ?>

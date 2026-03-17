@@ -9,7 +9,7 @@ require __DIR__ . '/../../includes/head.php';
 
 <section class="card privacy-card">
   <div class="card-header">
-    <span class="card-subtitle"><strong>Stand:</strong> 03.03.2026</span>
+    <span class="card-subtitle"><strong>Stand:</strong> 17.03.2026</span>
   </div>
 
   <div class="card-body privacy-content">
@@ -35,8 +35,7 @@ require __DIR__ . '/../../includes/head.php';
     <p>Beim Aufruf einer QR-Code-URL werden folgende Daten verarbeitet:</p>
     <ul class="indented">
       <li>Zeitpunkt des Aufrufs (Datum und Uhrzeit)</li>
-      <li>Anonymisierte IP-Adresse (gekürzt / nicht rückverfolgbar)</li>
-      <li>Technische Verbindungsdaten (z.B. HTTP-Statuscode)</li>
+      <li>Technischer Verbindungsstatus (HTTP-Statuscode)</li>
     </ul>
     <p>
       Es werden keine Endgerätedaten gespeichert, keine Cookies gesetzt
@@ -53,8 +52,8 @@ require __DIR__ . '/../../includes/head.php';
     <h2>5. Speicherdauer</h2>
     <p>
       Statistische Zeitstempel werden für maximal 24 Monate gespeichert.
-      Server-Logdaten werden in anonymisierter Form für maximal 3 Stunden vorgehalten
-      und anschließend automatisch gelöscht.
+      Server-Logdaten enthalten keine personenbezogenen Daten.
+      IP-Adressen oder Geräteinformationen werden nicht erfasst.
     </p>
 
     <h2>6. Hosting und Auftragsverarbeitung</h2>
