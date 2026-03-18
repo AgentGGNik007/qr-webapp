@@ -12,10 +12,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$input  = json_decode(file_get_contents('php://input'), true);
-$fgHex  = $input['fg'] ?? '#000000';
-$bgHex  = $input['bg'] ?? '#FFFFFF';
-$logo   = null;
+$input = json_decode(file_get_contents('php://input'), true);
+$fgHex = $input['fg'] ?? '#000000';
+$bgHex = $input['bg'] ?? '#FFFFFF';
+$logo  = null;
 
 if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $fgHex) || !preg_match('/^#[0-9A-Fa-f]{6}$/', $bgHex)) {
     http_response_code(400);
@@ -23,25 +23,17 @@ if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $fgHex) || !preg_match('/^#[0-9A-Fa-f]{6}
     exit;
 }
 
-    http_response_code(400);
-    echo json_encode(['error' => 'Ungültige Farbwerte']);
-    exit;
-}
-
-// Logo-Upload verarbeiten
 if (!empty($input['logo_tmp']) && is_file($input['logo_tmp'])) {
     $logo = $input['logo_tmp'];
 }
 
-// Vorschau in temporärem Verzeichnis generieren
-$tmpDir  = __DIR__ . '/../../data/tmp/';
+$tmpDir = __DIR__ . '/../../../data/tmp/';
 if (!is_dir($tmpDir)) mkdir($tmpDir, 0750, true);
 
 $stamp   = 'preview_' . uniqid() . '_' . time();
 $pngFile = $tmpDir . $stamp . '.png';
 
 use Endroid\QrCode\Builder\Builder;
-use Endroid\QrCode\Color\Color;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
@@ -66,7 +58,6 @@ $builder = new Builder(
 
 file_put_contents($pngFile, $builder->build()->getString());
 
-// Als base64 zurückgeben damit kein öffentlicher Pfad nötig ist
 $base64 = base64_encode(file_get_contents($pngFile));
 @unlink($pngFile);
 
