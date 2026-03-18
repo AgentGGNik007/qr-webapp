@@ -1,4 +1,4 @@
-# QR-Webapp Projekt – Stand 17.03.2026
+# QR-Webapp Projekt – Stand 18.03.2026
 
 ## Grundinfos
 - **Domain:** `qr.framenode.net`
@@ -37,7 +37,7 @@
 │   │   ├── js/app.js         # Theme-Toggle (Cycle + Footer-Dropdown)
 │   │   └── qr/               # generierte QR-Codes (PNG + SVG, max 10)
 │   ├── datenschutz/index.php # Datenschutzerklärung (öffentlich)
-│   ├── join/index.php        # 302 Redirect + Shlink-Tracking + Fehlerseite
+│   ├── join/index.php        # URL-Check + 302 Redirect auf Discord + E-Mail bei Fehler
 │   ├── healthz.txt           # Health-Check (öffentlich)
 │   └── zero-trust/
 │       ├── bib/index.php             # QR-Bibliothek (letzte 10 QR-Codes)
@@ -71,7 +71,7 @@
 ## Funktionen (aktueller Stand)
 - QR-Code Generierung (PNG + SVG, 400px, Popout-Wizard: BG-Farbe → FG-Farbe → Logo → Vorschau → Übernehmen)
 - QR-Code Bibliothek (max. 10, mit Zeitstempel, Download PNG/SVG)
-- `join/index.php` → Shlink-Tracking → 302 Redirect auf Discord Invite URL
+- `join/index.php` → URL-Check → 302 Redirect auf Discord Invite URL + E-Mail bei Fehler (kein Shlink-Aufruf mehr)
 - Fehlerseite bei nicht erreichbarer URL (kein Header/Footer, zentriert) + E-Mail
 - Cron: tägliche URL-Prüfung um 23:00 + E-Mail bei Fehler
 - Cron: neuer tracking_day täglich um 00:01
@@ -83,6 +83,7 @@
   - Vergleichs-Chart (zweites Chart zum Periodenvergleich)
   - Pfeile für Navigation + Scroll auf Buttons
   - Navigationsgrenze = erster erfasster Tag in tracking_days
+- Tracking-Architektur: QR-Code → `shlink.qr.framenode.net/j` → Shlink trackt → `qr.framenode.net/join/` → Discord
 - Admin-Login über Cloudflare Zero Trust (Google OIDC, 2 erlaubte E-Mails)
 - Datenschutzseite öffentlich erreichbar
 - Interessensabwägung nur per Zero Trust erreichbar
@@ -99,11 +100,16 @@
 | `/zero-trust/interessensabwaegung/` | Zero Trust |
 | `/api/*` | Zero Trust (via Cloudflare) |
 
+**Subdomain-Redirects:**
+- `dashboard.framenode.net` → `qr.framenode.net/zero-trust/dashboard/` (Apache 301)
+
 ## Shlink
 - Container: `shlink` (Docker)
 - Domain: `shlink.qr.framenode.net` (Apache Proxy, SSL Certbot, kein CF Proxy)
 - API-Key: `********`
-- Short-URL Slug: `join`
+- Short-URL Slug: `j`
+- Short-URL: `https://shlink.qr.framenode.net/j`
+- Long-URL: `https://qr.framenode.net/join/`
 - `ANONYMIZE_REMOTE_ADDR=true`
 - `TRACK_ORPHAN_VISITS=false`
 - Daten: `/opt/shlink/data`
@@ -141,8 +147,10 @@ docker stop shlink && docker rm shlink && docker run -d \
 - Cloudflare Proxy + Zero Trust (Google OIDC) als einzige Zugangskontrolle
 - Apache Origin nur für Cloudflare-IPs erreichbar
 - HSTS + Security-Header aktiv
-- Keine personenbezogenen Daten in Server-Logs
+- Keine personenbezogenen Daten in Server-Logs (IP, User-Agent)
+- Log-Format: nur Timestamp, Request, Status, Bytes
 - Shlink mit `ANONYMIZE_REMOTE_ADDR=true`
+- Gilt für: `qr.framenode.net` und `shlink.qr.framenode.net`
 
 ## Theme-System
 - 4 Themes: `light`, `grey`, `dark`, `contrast` (WCAG AAA)
@@ -187,7 +195,7 @@ docker stop shlink && docker rm shlink && docker run -d \
 ## Offene Punkte
 - [ ] QR-Code Download: zwei Varianten (mit Infotext und ohne) – nach Team-Absprache
 - [ ] Design-Kleinigkeiten (aufgefallen während Session)
-- [ ] Code Review + Git Push (morgen)
+- [ ] Code Review
 
 ## Wichtige Befehle
 ```bash
@@ -216,6 +224,6 @@ curl -s https://shlink.qr.framenode.net/rest/v3/short-urls \
 - Cloudflare DPA gilt automatisch (Self-Service Plan)
 - Brevo DPA vorhanden
 - Verantwortlicher: Niklas Rühl
-- Datenschutzerklärung: `qr.framenode.net/datenschutz/` (Stand: 17.03.2026)
+- Datenschutzerklärung: `qr.framenode.net/datenschutz/` (Stand: 18.03.2026)
 - Interessensabwägung: `qr.framenode.net/zero-trust/interessensabwaegung/`
 - Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO
