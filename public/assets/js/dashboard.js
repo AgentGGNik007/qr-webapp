@@ -351,6 +351,8 @@
       if (data.success) {
         urlStatus.innerHTML = '<span style="color:var(--status-success); font-size:1.1rem;">✓</span><span style="color:var(--status-success);">URL gespeichert</span>';
         urlInput.value = '';
+        const hintSpan = document.querySelector('.hint-text .text-soft');
+        if (hintSpan) hintSpan.textContent = url;
         checkUrl();
       } else {
         urlStatus.innerHTML = '<span style="color:var(--status-error); font-size:1.1rem;">✗</span><span style="color:var(--status-error);">' + (data.error ?? 'Fehler') + '</span>';
