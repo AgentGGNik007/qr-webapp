@@ -223,6 +223,6 @@ $inviteUrl = getConfig('discord_invite_url');
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw==" crossorigin="anonymous"></script>
-<script src="/assets/js/dashboard.js?v=<?= filemtime('/var/www/qr-webapp/public/assets/js/dashboard.js') ?>"></script>
+<script src="/assets/js/dashboard.js?v=<?= filemtime(__DIR__ . '/assets/js/dashboard.js') ?>"></script>
 
 <?php require __DIR__ . '/../../../includes/footer.php'; ?>

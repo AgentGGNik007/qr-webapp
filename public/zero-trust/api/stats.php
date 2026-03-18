@@ -61,6 +61,7 @@ if ($mode === 'week') {
 
 // Gesamt-Visits aus Shlink
 $summary = shlinkGet($baseUrl . '/short-urls/' . $slug, $apiKey);
+$shlinkAvailable = $summary !== null;
 $total   = $summary['visitsSummary']['nonBots'] ?? 0;
 
 // Visits im Zeitraum aus Shlink

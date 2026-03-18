@@ -6,9 +6,18 @@ $footerLinks         = $footerLinks         ?? [];
 $jsPathFs = __DIR__ . '/../public/assets/js/app.js';
 $jsVer    = is_file($jsPathFs) ? (string) filemtime($jsPathFs) : (string) time();
 
-// Letztes Git-Commit-Datum
-$gitDate = shell_exec('git -C ' . escapeshellarg(__DIR__ . '/..') . ' log -1 --format=%cd --date=format:"%d.%m.%Y" 2>/dev/null');
-$gitDate = $gitDate ? trim($gitDate) : date('d.m.Y');
+// Git-Datum gecacht in DB (max. 1x pro Stunde neu gelesen)
+$gitDate     = '';
+$gitCached   = getConfig('footer_git_date_cache');
+$gitCachedTs = (int)getConfig('footer_git_date_ts');
+if ($gitCached && (time() - $gitCachedTs) < 3600) {
+    $gitDate = $gitCached;
+} else {
+    $raw = shell_exec('git -C ' . escapeshellarg(__DIR__ . '/..') . ' log -1 --format=%cd --date=format:"%d.%m.%Y" 2>/dev/null');
+    $gitDate = $raw ? trim($raw) : date('d.m.Y');
+    setConfig('footer_git_date_cache', $gitDate);
+    setConfig('footer_git_date_ts', (string)time());
+}
 ?>
 <?php if ($showFooter): ?>
   <footer class="app-footer">
@@ -49,7 +58,6 @@ $gitDate = $gitDate ? trim($gitDate) : date('d.m.Y');
           </div>
         </div>
       <?php endif; ?>
-      
     </div>
 
   </footer>

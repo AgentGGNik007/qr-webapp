@@ -11,15 +11,20 @@ if (checkInviteUrl($url)) {
     exit;
 }
 
-// URL nicht erreichbar – E-Mail senden
-sendMail(
-    'Fehler: Discord Invite Link nicht erreichbar',
-    "Der Discord Invite Link ist nicht erreichbar.\n\n" .
-    "URL: " . $url . "\n" .
-    "Zeitpunkt: " . date('d.m.Y H:i:s') . "\n\n" .
-    "Bitte Link im Dashboard aktualisieren:\n" .
-    "https://qr.framenode.net/zero-trust/dashboard/"
-);
+$lastSent = getConfig('join_error_mail_last_sent');
+$now      = time();
+
+if (empty($lastSent) || ($now - (int)$lastSent) >= 3600) {
+    sendMail(
+        'Fehler: Discord Invite Link nicht erreichbar',
+        "Der Discord Invite Link ist nicht erreichbar.\n\n" .
+        "URL: " . $url . "\n" .
+        "Zeitpunkt: " . date('d.m.Y H:i:s') . "\n\n" .
+        "Bitte Link im Dashboard aktualisieren:\n" .
+        "https://qr.framenode.net/zero-trust/dashboard/"
+    );
+    setConfig('join_error_mail_last_sent', (string)$now);
+}
 
 $globalVer = is_file(__DIR__ . '/../../public/assets/css/global.css') ? (string) filemtime(__DIR__ . '/../../public/assets/css/global.css') : (string) time();
 $errorVer  = is_file(__DIR__ . '/../../public/assets/css/error.css')  ? (string) filemtime(__DIR__ . '/../../public/assets/css/error.css')  : (string) time();
