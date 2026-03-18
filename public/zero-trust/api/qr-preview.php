@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../../vendor/autoload.php';
 require_once __DIR__ . '/../../../includes/config.php';
 require_once __DIR__ . '/../../../includes/qr-generator.php';
 
@@ -23,8 +24,12 @@ if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $fgHex) || !preg_match('/^#[0-9A-Fa-f]{6}
     exit;
 }
 
-if (!empty($input['logo_tmp']) && is_file($input['logo_tmp'])) {
-    $logo = $input['logo_tmp'];
+if (!empty($input['logo_name'])) {
+    $logoName = basename($input['logo_name']);
+    $logoPath = __DIR__ . '/../../../data/uploads/' . $logoName;
+    if (is_file($logoPath) && preg_match('/^logo_[0-9a-f]+_[0-9]+\.(png|svg)$/', $logoName)) {
+        $logo = $logoPath;
+    }
 }
 
 $tmpDir = __DIR__ . '/../../../data/tmp/';

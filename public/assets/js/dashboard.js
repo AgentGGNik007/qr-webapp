@@ -421,7 +421,7 @@
       try {
         const res  = await fetch('/zero-trust/api/logo-upload.php', { method: 'POST', body: formData });
         const data = await res.json();
-        if (data.success) { logoTmpPath = data.tmp_path; }
+        if (data.success) { logoTmpPath = data.tmp_name; }
         else { alert(data.error ?? 'Logo-Upload fehlgeschlagen'); return; }
       } catch (_) { alert('Verbindungsfehler beim Logo-Upload'); return; }
     }
@@ -439,7 +439,7 @@
       const res  = await fetch('/zero-trust/api/qr-preview.php', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_tmp: logoTmpPath }),
+        body:    JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_name: logoTmpPath }),
       });
       const data = await res.json();
       if (data.preview) {
@@ -459,7 +459,7 @@
       const res  = await fetch('/zero-trust/api/qr-save.php', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_tmp: logoTmpPath }),
+        body:    JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_name: logoTmpPath }),
       });
       const data = await res.json();
       if (data.success) { closePopout(); window.location.reload(); }

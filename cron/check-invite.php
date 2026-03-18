@@ -18,6 +18,6 @@ if (!checkInviteUrl($url)) {
         "URL: " . $url . "\n" .
         "Zeitpunkt: " . date('d.m.Y H:i:s') . "\n\n" .
         "Bitte Link im Dashboard aktualisieren:\n" .
-        "https://qr.framenode.net/dashboard/"
+        "https://qr.framenode.net/zero-trust/dashboard/"
     );
 }

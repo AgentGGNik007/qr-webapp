@@ -44,7 +44,7 @@ Browser → Cloudflare Proxy → Apache → PHP
 | `/zero-trust/dashboard/` | Zero Trust |
 | `/zero-trust/bib/` | Zero Trust |
 | `/zero-trust/interessensabwaegung/` | Zero Trust |
-| `/api/*` | Zero Trust |
+| `/zero-trust/api/*` | Zero Trust |
 
 ## Datenschutz
 
