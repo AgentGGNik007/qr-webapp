@@ -17,6 +17,17 @@ $fgHex  = $input['fg'] ?? '#000000';
 $bgHex  = $input['bg'] ?? '#FFFFFF';
 $logo   = null;
 
+if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $fgHex) || !preg_match('/^#[0-9A-Fa-f]{6}$/', $bgHex)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Ungültige Farbwerte']);
+    exit;
+}
+
+    http_response_code(400);
+    echo json_encode(['error' => 'Ungültige Farbwerte']);
+    exit;
+}
+
 // Logo-Upload verarbeiten
 if (!empty($input['logo_tmp']) && is_file($input['logo_tmp'])) {
     $logo = $input['logo_tmp'];
@@ -26,7 +37,7 @@ if (!empty($input['logo_tmp']) && is_file($input['logo_tmp'])) {
 $tmpDir  = __DIR__ . '/../../data/tmp/';
 if (!is_dir($tmpDir)) mkdir($tmpDir, 0750, true);
 
-$stamp   = 'preview_' . session_id() . '_' . time();
+$stamp   = 'preview_' . uniqid() . '_' . time();
 $pngFile = $tmpDir . $stamp . '.png';
 
 use Endroid\QrCode\Builder\Builder;

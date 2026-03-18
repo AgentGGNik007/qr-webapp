@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 require_once __DIR__ . '/../../includes/config.php';
 
-$apiKey  = 'webapp-api-key-version-0-0-0';
+$apiKey  = $_ENV['SHLINK_API_KEY'] ?? '';
 $baseUrl = 'https://shlink.qr.framenode.net/rest/v3';
 $slug    = 'join';
 

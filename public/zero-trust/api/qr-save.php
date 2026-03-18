@@ -17,13 +17,19 @@ $fgHex  = $input['fg'] ?? '#000000';
 $bgHex  = $input['bg'] ?? '#FFFFFF';
 $logo   = null;
 
+if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $fgHex) || !preg_match('/^#[0-9A-Fa-f]{6}$/', $bgHex)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Ungültige Farbwerte']);
+    exit;
+}
+
 if (!empty($input['logo_tmp']) && is_file($input['logo_tmp'])) {
     $logo = $input['logo_tmp'];
 }
 
 try {
     $result = generateQrCode(
-        'https://shlink.qr.framenode.net/j',
+        $_ENV['SHLINK_SHORT_URL'] ?? '',
         $fgHex,
         $bgHex,
         $logo
