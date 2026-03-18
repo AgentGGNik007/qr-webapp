@@ -9,7 +9,7 @@ require __DIR__ . '/../../includes/head.php';
 
 <section class="card privacy-card">
   <div class="card-header">
-    <span class="card-subtitle"><strong>Stand:</strong> 17.03.2026</span>
+    <span class="card-subtitle"><strong>Stand:</strong> 18.03.2026</span>
   </div>
 
   <div class="card-body privacy-content">
@@ -93,9 +93,14 @@ require __DIR__ . '/../../includes/head.php';
 
     <h2>7. Weiterleitung zu Discord</h2>
     <p>
-      Die QR-Code-URL führt mittels HTTP-Statuscode 302
-      auf einen Einladungslink zu Discord.
-      Beim Aufruf dieser Zieladresse verarbeitet Discord eigenständig Daten
+      Der QR-Code verweist auf einen selbstgehosteten Tracking-Dienst (Shlink),
+      der den Aufruf anonymisiert erfasst und anschließend mittels HTTP-Statuscode 302
+      auf einen Discord-Einladungslink weiterleitet.
+      Shlink ist auf eigener Infrastruktur betrieben und speichert keine IP-Adressen
+      (<code>ANONYMIZE_REMOTE_ADDR=true</code>).
+    </p>
+    <p>
+      Beim Aufruf der Discord-Zieladresse verarbeitet Discord eigenständig Daten
       gemäß deren Datenschutzbestimmungen.
     </p>
     <p>

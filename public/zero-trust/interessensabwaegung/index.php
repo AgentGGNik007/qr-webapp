@@ -12,7 +12,7 @@ require __DIR__ . '/../../../includes/head.php';
 
 <section class="card privacy-card">
   <div class="card-header">
-    <span class="card-subtitle"><strong>Stand:</strong> 03.03.2026</span>
+    <span class="card-subtitle"><strong>Stand:</strong> 18.03.2026</span>
   </div>
 
   <div class="card-body privacy-content">
@@ -21,7 +21,7 @@ require __DIR__ . '/../../../includes/head.php';
       <strong>Projekt:</strong> QR-Code-basierte Community-Reichweitenanalyse<br>
       <strong>Verantwortlicher:</strong> Niklas Rühl<br>
       <strong>Kontakt:</strong> <a href="mailto:datenschutz@framenode.net">datenschutz@framenode.net</a><br>
-      <strong>Datum:</strong> 03.03.2026
+      <strong>Datum:</strong> 18.03.2026
     </p>
 
     <h2>1. Beschreibung der Verarbeitung</h2>
@@ -31,10 +31,10 @@ require __DIR__ . '/../../../includes/head.php';
     </p>
     <p>Zusätzlich werden technisch erforderliche Verbindungsdaten verarbeitet:</p>
     <ul class="indented">
-      <li>anonymisierte IP-Adresse</li>
       <li>HTTP-Statuscode</li>
-      <li>technische Server-Logdaten (max. 3 Stunden)</li>
+      <li>Zeitstempel des Aufrufs</li>
     </ul>
+    <p>IP-Adressen und Geräteinformationen werden weder in Server-Logs noch im Tracking-Dienst gespeichert.</p>
     <p>Die QR-Code-URL führt mittels HTTP-Status 302 auf einen Discord-Invite-Link weiter.</p>
     <p>Es erfolgt:</p>
     <ul class="indented">
@@ -74,7 +74,7 @@ require __DIR__ . '/../../../includes/head.php';
     <h3><u>Eingriffsintensität</u></h3>
     <ul class="indented">
       <li>Es werden keine direkt identifizierenden Daten gespeichert</li>
-      <li>IP-Adressen werden anonymisiert</li>
+      <li>IP-Adressen werden nicht gespeichert</li>
       <li>Keine dauerhafte Identifizierbarkeit</li>
       <li>Keine Weitergabe zu Werbezwecken</li>
       <li>Keine automatisierten Entscheidungen</li>
@@ -85,15 +85,14 @@ require __DIR__ . '/../../../includes/head.php';
     <p>
       Beim Aufruf eines QR-Codes ist technisch zu erwarten, dass Zugriffsdaten
       in minimalem Umfang verarbeitet werden.
-      Eine rein technische Verarbeitung anonymisierter Zugriffsdaten entspricht
+      Eine rein technische Verarbeitung nicht personenbezogener Zugriffsdaten entspricht
       der allgemeinen Verkehrserwartung.
     </p>
 
     <h2>5. Schutzmaßnahmen</h2>
     <p>Folgende Maßnahmen minimieren das Risiko:</p>
     <ul class="indented">
-      <li>IP-Anonymisierung</li>
-      <li>kurze Log-Speicherfrist (max. 3 Stunden)</li>
+      <li>Keine Speicherung von IP-Adressen (weder in Logs noch im Tracking-Dienst)</li>
       <li>keine Tracking-Cookies</li>
       <li>keine Fingerprinting-Techniken</li>
       <li>keine Profilbildung</li>
