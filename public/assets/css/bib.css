@@ -1,0 +1,51 @@
+/* bib.css */
+
+.bib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+
+.bib-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.bib-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+}
+
+.bib-date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.bib-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+}
+
+.bib-actions {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.bib-actions .btn {
+  flex: 1;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
+}

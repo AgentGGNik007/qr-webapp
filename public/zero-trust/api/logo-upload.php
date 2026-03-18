@@ -16,7 +16,7 @@ if (empty($_FILES['logo'])) {
 }
 
 $file     = $_FILES['logo'];
-$allowed  = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+$allowed  = ['image/png', 'image/svg+xml'];
 $maxSize  = 2 * 1024 * 1024; // 2MB
 
 if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -25,9 +25,13 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
-if (!in_array($file['type'], $allowed, true)) {
+$finfo = finfo_open(FILEINFO_MIME_TYPE);
+$mime  = finfo_file($finfo, $file['tmp_name']);
+finfo_close($finfo);
+
+if (!in_array($mime, $allowed, true)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Nur PNG, JPG, GIF und WEBP erlaubt']);
+    echo json_encode(['error' => 'Nur PNG und SVG erlaubt']);
     exit;
 }
 

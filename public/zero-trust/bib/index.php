@@ -2,6 +2,7 @@
 declare(strict_types=1);
 $title       = 'QR-Bibliothek';
 $headerTitle = 'QR-Bibliothek';
+$extraCss = ['bib.css'];
 $footerLinks = [
   ['href' => '/zero-trust/dashboard/',            'label' => 'Dashboard'],
   ['href' => '/datenschutz/',          'label' => 'Datenschutz'],
@@ -21,7 +22,7 @@ $library = getQrLibrary();
 
   <div class="card-body">
     <?php if (empty($library)): ?>
-      <p style="color: var(--text-muted);">Noch keine QR-Codes generiert.</p>
+      <p class="text-muted">Noch keine QR-Codes generiert.</p>
     <?php else: ?>
       <div class="bib-grid">
         <?php foreach ($library as $i => $item): ?>

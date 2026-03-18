@@ -3,6 +3,7 @@ declare(strict_types=1);
 $title               = 'Datenschutz';
 $headerTitle         = 'Datenschutzerklärung';
 $footerLinks         = [];
+$extraCss            = ['privacy.css'];
 $showFooterThemeMenu = true;
 require __DIR__ . '/../../includes/head.php';
 ?>

@@ -21,8 +21,8 @@ sendMail(
     "https://qr.framenode.net/zero-trust/dashboard/"
 );
 
-$cssPathFs = __DIR__ . '/../../public/assets/css/app.css';
-$cssVer    = is_file($cssPathFs) ? (string) filemtime($cssPathFs) : (string) time();
+$globalVer = is_file(__DIR__ . '/../../public/assets/css/global.css') ? (string) filemtime(__DIR__ . '/../../public/assets/css/global.css') : (string) time();
+$errorVer  = is_file(__DIR__ . '/../../public/assets/css/error.css')  ? (string) filemtime(__DIR__ . '/../../public/assets/css/error.css')  : (string) time();
 ?>
 <!doctype html>
 <html lang="de">
@@ -30,34 +30,16 @@ $cssVer    = is_file($cssPathFs) ? (string) filemtime($cssPathFs) : (string) tim
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Link nicht verfügbar</title>
-  <link rel="stylesheet" href="/assets/css/app.css?v=<?= htmlspecialchars($cssVer, ENT_QUOTES, 'UTF-8') ?>">
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, sans-serif;
-    }
-    .error-wrap {
-      width: 100%;
-      max-width: 420px;
-      padding: 1.5rem;
-      box-sizing: border-box;
-    }
-  </style>
+  <link rel="stylesheet" href="/assets/css/global.css?v=<?= htmlspecialchars($globalVer, ENT_QUOTES, 'UTF-8') ?>">
+  <link rel="stylesheet" href="/assets/css/error.css?v=<?= htmlspecialchars($errorVer, ENT_QUOTES, 'UTF-8') ?>">
 </head>
-<body>
+<body class="page-centered">
   <div class="error-wrap">
-    <div class="card" style="text-align:center;">
+    <div class="card text-center">
       <div class="card-body">
-        <p style="font-size:2.5rem; margin:0 0 0.75rem 0;">⚠️</p>
-        <h1 class="card-title" style="font-size:1.2rem; margin-bottom:0.6rem;">Einladungslink nicht verfügbar</h1>
-        <p style="color:var(--text-soft); margin:0; font-size:0.95rem; line-height:1.5;">
+        <p class="error-icon">⚠️</p>
+        <h1 class="card-title error-title">Einladungslink nicht verfügbar</h1>
+        <p class="error-text">
           Der Discord-Einladungslink ist momentan nicht erreichbar.<br>
           Bitte versuche es später erneut.
         </p>

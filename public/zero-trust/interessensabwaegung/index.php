@@ -6,6 +6,7 @@ $footerLinks         = [
   ['href' => '/zero-trust/dashboard/',  'label' => 'Dashboard'],
   ['href' => '/datenschutz/', 'label' => 'Datenschutz'],
 ];
+$extraCss = ['privacy.css'];
 $showFooterThemeMenu = true;
 require __DIR__ . '/../../../includes/head.php';
 ?>
@@ -109,7 +110,7 @@ require __DIR__ . '/../../../includes/head.php';
     </p>
 
     <h2>Hinweis zur Verwendung</h2>
-    <p style="color:var(--text-muted); font-size:0.9rem; border-left:3px solid var(--border-soft); padding-left:0.75rem;">
+    <p class="privacy-hint">
       Dieses Dokument ist ein internes Dokumentationsinstrument gemäß der Rechenschaftspflicht
       nach Art. 5 Abs. 2 DSGVO. Eine vollständige Veröffentlichung ist nicht erforderlich.<br><br>
       Öffentlich in der Datenschutzerklärung genügt der Verweis:<br>
