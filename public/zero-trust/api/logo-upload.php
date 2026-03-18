@@ -52,6 +52,6 @@ if (!move_uploaded_file($file['tmp_name'], $tmpPath)) {
 }
 
 echo json_encode([
-    'success'  => true,
-    'tmp_path' => $tmpPath,
+    'success'   => true,
+    'tmp_name'  => $tmpName,
 ]);

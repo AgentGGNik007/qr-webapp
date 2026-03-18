@@ -8,7 +8,7 @@ if (is_file($envPath)) {
     foreach ($lines as $line) {
         if (str_starts_with(trim($line), '#')) continue;
         [$key, $value] = explode('=', $line, 2);
-        $_ENV[trim($key)] = trim($value);
+        $_ENV[trim($key)] = trim($value, " \t\r\n\"'");
     }
 }
 

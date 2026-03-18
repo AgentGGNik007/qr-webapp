@@ -199,7 +199,7 @@ $inviteUrl = getConfig('discord_invite_url');
         <button class="btn"        id="logo-yes" type="button">Ja</button>
       </div>
       <div id="logo-upload-wrap" class="logo-upload-wrap">
-        <input type="file" id="logo-file" accept="image/png,image/jpeg,image/gif,image/webp">
+        <input type="file" id="logo-file" accept="image/png,image/svg+xml">
       </div>
       <div class="popout-footer">
         <button class="btn" id="step3-back" type="button">Zurück</button>
@@ -223,6 +223,7 @@ $inviteUrl = getConfig('discord_invite_url');
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw==" crossorigin="anonymous"></script>
-<script src="/assets/js/dashboard.js?v=<?= filemtime(__DIR__ . '/assets/js/dashboard.js') ?>"></script>
+<?php $dashJsVer = is_file(__DIR__ . '/../../../assets/js/dashboard.js') ? (string) filemtime(__DIR__ . '/../../../assets/js/dashboard.js') : (string) time(); ?>
+<script src="/assets/js/dashboard.js?v=<?= htmlspecialchars($dashJsVer, ENT_QUOTES, 'UTF-8') ?>"></script>
 
 <?php require __DIR__ . '/../../../includes/footer.php'; ?>
