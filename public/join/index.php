@@ -1,40 +1,12 @@
 <?php
 declare(strict_types=1);
-
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/invite-check.php';
 require_once __DIR__ . '/../../includes/mailer.php';
 
 $url = getConfig('discord_invite_url');
 
-// Visit an Shlink melden
-function trackVisit(): void {
-    $clientIp = $_SERVER['HTTP_CF_CONNECTING_IP']
-        ?? $_SERVER['HTTP_X_FORWARDED_FOR']
-        ?? $_SERVER['REMOTE_ADDR']
-        ?? '';
-
-    $ch = curl_init('https://shlink.qr.framenode.net/rest/v3/short-urls/join/visits');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_HTTPHEADER     => [
-            'X-Api-Key: webapp-api-key-version-0-0-0',
-            'Content-Type: application/json',
-            'X-Forwarded-For: ' . $clientIp,
-        ],
-        CURLOPT_POSTFIELDS     => json_encode([
-            'userAgent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
-            'referer'   => $_SERVER['HTTP_REFERER']    ?? '',
-        ]),
-        CURLOPT_TIMEOUT        => 3,
-    ]);
-    curl_exec($ch);
-    curl_close($ch);
-}
-
 if (checkInviteUrl($url)) {
-    trackVisit();
     header('Location: ' . $url, true, 302);
     exit;
 }
@@ -46,7 +18,7 @@ sendMail(
     "URL: " . $url . "\n" .
     "Zeitpunkt: " . date('d.m.Y H:i:s') . "\n\n" .
     "Bitte Link im Dashboard aktualisieren:\n" .
-    "https://qr.framenode.net/dashboard/"
+    "https://qr.framenode.net/zero-trust/dashboard/"
 );
 
 $cssPathFs = __DIR__ . '/../../public/assets/css/app.css';
@@ -71,7 +43,6 @@ $cssVer    = is_file($cssPathFs) ? (string) filemtime($cssPathFs) : (string) tim
       color: var(--text);
       font-family: system-ui, sans-serif;
     }
-
     .error-wrap {
       width: 100%;
       max-width: 420px;

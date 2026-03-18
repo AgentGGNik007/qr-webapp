@@ -23,7 +23,7 @@ if (!empty($input['logo_tmp']) && is_file($input['logo_tmp'])) {
 
 try {
     $result = generateQrCode(
-        'https://qr.framenode.net/join/',
+        'https://shlink.qr.framenode.net/j',
         $fgHex,
         $bgHex,
         $logo
