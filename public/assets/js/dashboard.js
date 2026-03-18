@@ -12,7 +12,10 @@
   }
 
   function drawChart(labels, values) {
-    const color = getChartColor();
+    const cs        = getComputedStyle(document.documentElement);
+    const color     = cs.getPropertyValue('--accent').trim();
+    const textColor = cs.getPropertyValue('--text').trim();
+    const bgColor   = cs.getPropertyValue('--bg').trim();
     const ctx   = document.getElementById('stats-chart').getContext('2d');
     if (chartInst) chartInst.destroy();
     chartInst = new Chart(ctx, {
@@ -22,13 +25,14 @@
         datasets: [{
           data: values,
           borderColor: color,
-          backgroundColor: color + '22',
+          backgroundColor: color + '18',
           pointBackgroundColor: color,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          tension: 0.3,
+          pointBorderColor: color,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0,
           spanGaps: false,
-          fill: true,
+          fill: { target: { value: -0.5 }, above: color + '18' },
         }]
       },
       options: {
@@ -37,15 +41,16 @@
         plugins: { legend: { display: false } },
         scales: {
           x: {
-            grid:  { color: 'rgba(128,128,128,0.1)' },
-            ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() },
+            grid:  { color: bgColor },
+            ticks: { color: textColor },
           },
           y: {
-            beginAtZero: true,
-            grid:  { color: 'rgba(128,128,128,0.1)' },
+            min: -0.5,
+            grid:  { color: bgColor },
             ticks: {
-              color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim(),
-              stepSize: 1,
+              color: textColor,
+              stepSize: 0.5,
+              callback: (val) => Number.isInteger(val) && val >= 0 ? val : '',
             },
           }
         }
@@ -92,6 +97,10 @@
 
   document.getElementById('chart-prev').addEventListener('click', () => { chartOffset--; renderChart(); });
   document.getElementById('chart-next').addEventListener('click', () => { chartOffset++; renderChart(); });
+  document.addEventListener('themechange', () => {
+    renderChart();
+    if (typeof renderCmp === 'function') renderCmp();
+  });
 
   document.getElementById('toggle-month').addEventListener('click', () => {
     chartMode = 'month'; chartOffset = 0;
@@ -483,7 +492,10 @@
     }
 
     function drawCmp(labels, values) {
-      const color = getChartColor();
+      const cs        = getComputedStyle(document.documentElement);
+      const color     = cs.getPropertyValue('--accent').trim();
+      const textColor = cs.getPropertyValue('--text').trim();
+      const bgColor   = cs.getPropertyValue('--bg').trim();
       const ctx   = document.getElementById('cmp-chart').getContext('2d');
       if (cmpInst) cmpInst.destroy();
       cmpInst = new Chart(ctx, {
@@ -493,10 +505,11 @@
           datasets: [{
             data: values,
             borderColor: color,
-            backgroundColor: color + '22',
+            backgroundColor: color + '18',
             pointBackgroundColor: color,
-            pointRadius: 4,
-            pointHoverRadius: 6,
+            pointBorderColor: color,
+            pointRadius: 3,
+            pointHoverRadius: 5,
             tension: 0.3,
             spanGaps: false,
             fill: true,
@@ -508,15 +521,16 @@
           plugins: { legend: { display: false } },
           scales: {
             x: {
-              grid:  { color: 'rgba(128,128,128,0.1)' },
-              ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() },
+              grid:  { color: bgColor },
+              ticks: { color: textColor },
             },
             y: {
-              beginAtZero: true,
-              grid:  { color: 'rgba(128,128,128,0.1)' },
+              min: -0.5,
+              grid:  { color: bgColor },
               ticks: {
-                color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim(),
-                stepSize: 1,
+                color: textColor,
+                stepSize: 0.5,
+                callback: (val) => Number.isInteger(val) && val >= 0 ? val : '',
               },
             }
           }
