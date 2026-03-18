@@ -9,11 +9,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../../includes/config.php';
 
 $apiKey  = $_ENV['SHLINK_API_KEY'] ?? '';
 $baseUrl = 'https://shlink.qr.framenode.net/rest/v3';
-$slug    = 'join';
+$slug    = 'j';
 
 function shlinkGet(string $url, string $apiKey): ?array {
     $ch = curl_init($url);
