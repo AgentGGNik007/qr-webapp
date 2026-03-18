@@ -510,9 +510,9 @@
             pointBorderColor: color,
             pointRadius: 3,
             pointHoverRadius: 5,
-            tension: 0.3,
+            tension: 0,
             spanGaps: false,
-            fill: true,
+            fill: { target: { value: -0.5 }, above: color + '18' },
           }]
         },
         options: {

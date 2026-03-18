@@ -49,7 +49,7 @@ $bg = hexToColor($bgHex);
 
 $builder = new Builder(
     writer: new PngWriter(),
-    data: 'https://qr.framenode.net/join/',
+    data: $_ENV['SHLINK_SHORT_URL'] ?? 'https://qr.framenode.net/join/',
     encoding: new Encoding('UTF-8'),
     errorCorrectionLevel: ErrorCorrectionLevel::High,
     size: 400,
