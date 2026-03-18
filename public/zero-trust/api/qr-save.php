@@ -25,7 +25,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $fgHex) || !preg_match('/^#[0-9A-Fa-f]{6}
 
 if (!empty($input['logo_name'])) {
     $logoName = basename($input['logo_name']);
-    $logoPath = __DIR__ . '/../../data/uploads/' . $logoName;
+    $logoPath = __DIR__ . '/../../../data/uploads/' . $logoName;
     if (is_file($logoPath) && preg_match('/^logo_[0-9a-f]+_[0-9]+\.(png|svg)$/', $logoName)) {
         $logo = $logoPath;
     }

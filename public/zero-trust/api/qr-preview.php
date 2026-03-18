@@ -57,7 +57,7 @@ $builder = new Builder(
     foregroundColor: $fg,
     backgroundColor: $bg,
     roundBlockSizeMode: RoundBlockSizeMode::Margin,
-    logoPath: ($logo && is_file($logo)) ? $logo : '',
+    logoPath: ($logo && is_file($logo)) ? $logo : null,
     logoResizeToWidth: ($logo && is_file($logo)) ? 80 : null,
 );
 
