@@ -42,7 +42,7 @@ if ($file['size'] > $maxSize) {
 }
 
 $tmpDir = __DIR__ . '/../../data/uploads/';
-$tmpName = 'logo_' . bin2hex(random_bytes(8)) . '_' . time() . '.' . pathinfo($file['name'], PATHINFO_EXTENSION);
+$tmpName = 'logo_' . bin2hex(random_bytes(8)) . '_' . time() . '.' . ($mime === 'image/svg+xml' ? 'svg' : 'png');
 $tmpPath = $tmpDir . $tmpName;
 
 if (!move_uploaded_file($file['tmp_name'], $tmpPath)) {

@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Nur Discord Invite URLs erlauben
-    if (!preg_match('#^https://discord\.gg/[a-zA-Z0-9]+$#', $url)) {
+    if (!preg_match('#^https://discord\.gg/[a-zA-Z0-9-]+$#', $url)) {
         http_response_code(400);
         echo json_encode(['error' => 'Ungültige Discord Invite URL']);
         exit;

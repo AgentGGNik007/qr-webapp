@@ -36,7 +36,7 @@ function generateQrCode(
         foregroundColor: $fg,
         backgroundColor: $bg,
         roundBlockSizeMode: RoundBlockSizeMode::Margin,
-        logoPath: ($logoPath && is_file($logoPath)) ? $logoPath : '',
+        logoPath: ($logoPath && is_file($logoPath)) ? $logoPath : null,
         logoResizeToWidth: ($logoPath && is_file($logoPath)) ? 80 : null,
     );
 
