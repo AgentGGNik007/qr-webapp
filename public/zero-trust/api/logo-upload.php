@@ -42,13 +42,39 @@ if ($file['size'] > $maxSize) {
 }
 
 $tmpDir = __DIR__ . '/../../../data/uploads/';
-$tmpName = 'logo_' . bin2hex(random_bytes(8)) . '_' . time() . '.' . ($mime === 'image/svg+xml' ? 'svg' : 'png');
-$tmpPath = $tmpDir . $tmpName;
 
-if (!move_uploaded_file($file['tmp_name'], $tmpPath)) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Datei konnte nicht gespeichert werden']);
-    exit;
+if ($mime === 'image/svg+xml') {
+    // SVG temporär speichern, dann zu PNG konvertieren
+    $svgName = 'logo_' . bin2hex(random_bytes(8)) . '_' . time() . '.svg';
+    $svgPath = $tmpDir . $svgName;
+
+    if (!move_uploaded_file($file['tmp_name'], $svgPath)) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Datei konnte nicht gespeichert werden']);
+        exit;
+    }
+
+    $tmpName = 'logo_' . bin2hex(random_bytes(8)) . '_' . time() . '.png';
+    $tmpPath = $tmpDir . $tmpName;
+
+    $cmd    = 'rsvg-convert -w 500 -h 500 ' . escapeshellarg($svgPath) . ' -o ' . escapeshellarg($tmpPath) . ' 2>&1';
+    $output = shell_exec($cmd);
+    @unlink($svgPath);
+
+    if (!is_file($tmpPath)) {
+        http_response_code(500);
+        echo json_encode(['error' => 'SVG-Konvertierung fehlgeschlagen: ' . $output]);
+        exit;
+    }
+} else {
+    $tmpName = 'logo_' . bin2hex(random_bytes(8)) . '_' . time() . '.png';
+    $tmpPath = $tmpDir . $tmpName;
+
+    if (!move_uploaded_file($file['tmp_name'], $tmpPath)) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Datei konnte nicht gespeichert werden']);
+        exit;
+    }
 }
 
 echo json_encode([
