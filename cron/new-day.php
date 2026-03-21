@@ -6,8 +6,8 @@ $db   = getDB();
 $date = date('Y-m-d');
 
 // Neuen Tag eintragen
-$stmt = $db->prepare("INSERT OR IGNORE INTO tracking_days (date) VALUES (?)");
-$stmt->execute([$date]);
+$stmt = $db->prepare("INSERT OR IGNORE INTO tracking_days (date, created_at) VALUES (?, ?)");
+$stmt->execute([$date, date('Y-m-d H:i:s')]);
 
 // Einträge löschen deren Monat mehr als 24 Monate zurückliegt
 // Beispiel: am 1.3.2028 wird der gesamte März 2026 gelöscht

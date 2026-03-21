@@ -1,5 +1,7 @@
 # QR-Webapp Projekt – Stand 18.03.2026
 
+## Status: ✅ Abgeschlossen
+
 ## Grundinfos
 - **Domain:** `qr.framenode.net`
 - **Server:** Contabo VDS, Ubuntu, Apache 2.4.58, PHP 8.3
@@ -67,27 +69,27 @@
 ### Tabelle `config`
 - `key` TEXT PRIMARY KEY
 - `value` TEXT NOT NULL
-- Einträge: `discord_invite_url`
+- Einträge: `discord_invite_url`, `join_error_mail_last_sent`, `footer_git_date_cache`, `footer_git_date_ts`
 
 ### Tabelle `tracking_days`
 - `date` TEXT PRIMARY KEY (Format: YYYY-MM-DD)
-- `created_at` TEXT
+- `created_at` TEXT (wird seit 18.03.2026 befüllt)
 - Einträge ab 01.03.2026, täglich per Cron ergänzt
 - Rolling Window: 24 Monate (älteste werden automatisch gelöscht)
 
-## Funktionen (aktueller Stand)
+## Funktionen (abgeschlossen)
 - QR-Code Generierung (PNG + SVG, 400px, Popout-Wizard: BG-Farbe → FG-Farbe → Logo → Vorschau → Übernehmen)
 - QR-Code Bibliothek (max. 10, mit Zeitstempel, Download PNG/SVG)
-- `join/index.php` → URL-Check → 302 Redirect auf Discord Invite URL + E-Mail bei Fehler (kein Shlink-Aufruf mehr)
+- `join/index.php` → URL-Check → 302 Redirect auf Discord Invite URL + E-Mail bei Fehler
 - Fehlerseite bei nicht erreichbarer URL (kein Header/Footer, zentriert) + E-Mail
 - Cron: tägliche URL-Prüfung um 23:00 + E-Mail bei Fehler
-- Cron: neuer tracking_day täglich um 00:01
+- Cron: neuer tracking_day täglich um 00:01 (inkl. created_at)
 - Statistik-Dashboard mit echten Shlink-Daten
   - Monatsansicht (alle Tage 1-31, null für Zukunft)
   - Wochenansicht (So-Sa, null für Zukunft/vor firstDay)
   - Drum-Roll Picker für Monat/KW + Jahr
   - Heute-Button (springt zur aktuellen Periode)
-  - Vergleichs-Chart (zweites Chart zum Periodenvergleich)
+  - Vergleichs-Chart (zweites Chart zum Periodenvergleich, identisches Design)
   - Pfeile für Navigation + Scroll auf Buttons
   - Navigationsgrenze = erster erfasster Tag in tracking_days
 - Tracking-Architektur: QR-Code → `shlink.qr.framenode.net/j` → Shlink trackt → `qr.framenode.net/join/` → Discord
@@ -185,7 +187,7 @@ SHLINK_SHORT_URL
 
 ## Theme-System
 - 4 Themes: `light`, `grey`, `dark`, `contrast` (WCAG AAA)
-- Fallback via `prefers-color-scheme` wenn kein `data-theme` gesetzt (kein hardcodierter Default mehr)
+- Fallback via `prefers-color-scheme` wenn kein `data-theme` gesetzt
 - Reihenfolge Cycle: light → grey → dark → contrast
 - localStorage Key: `qr-webapp-theme`
 - Header: Cycle-Button mit Icon
@@ -217,16 +219,33 @@ SHLINK_SHORT_URL
 - Accent: `#00E5FF` / Hover `#80F0FF` / Focus `#FFD600`
 - Accent-Text: `#000000`
 
+## Code Reviews (18.03.2026)
+Mehrere vollständige Code-Reviews durchgeführt. Alle gefundenen Bugs behoben:
+- API-Key + Shlink-URL aus Code in `.env` ausgelagert
+- Hex-Validierung für QR-Farben eingebaut
+- MIME-Type Prüfung bei Logo-Upload auf serverseitig umgestellt
+- `session_id()` Bug in qr-preview gefixt
+- `vendor/autoload.php` explizit in qr-preview eingebunden (danach bereinigt)
+- Shlink-Slug `join` → `j` korrigiert
+- Discord-Regex um Bindestriche erweitert
+- `logoPath` null statt leer
+- Logo-Upload: kein Serverpfad in API-Response
+- `filemtime()` Pfade in dashboard/index.php korrigiert
+- Chart-Design: Farben theme-basiert, gerade Linien, 0-Linie, Fill, Theme-Wechsel
+- Vergleichs-Chart: Design mit Hauptchart angeglichen (tension, fill)
+- `qr-preview.php`: hardcodierte URL → `$_ENV['SHLINK_SHORT_URL']`
+- `new-day.php`: `created_at` wird jetzt korrekt befüllt
+- Doppelter autoload in `qr-preview.php` entfernt
+
+## Offene Punkte
+- [ ] QR-Code Download: zwei Varianten (mit Infotext und ohne) – nach Team-Absprache
+
 ## Arbeitsweise & Präferenzen
 - Antworten auf Deutsch
 - Neue Aufgaben erst theoretisch besprechen, dann schrittweise umsetzen
 - Vor großen/destruktiven Änderungen nachfragen
 - Code immer vollständig und direkt verwendbar (copy & paste)
 - Bei Unklarheiten immer nachfragen, nie raten
-
-## Offene Punkte
-- [ ] QR-Code Download: zwei Varianten (mit Infotext und ohne) – nach Team-Absprache
-- [ ] Design-Kleinigkeiten (aufgefallen während Session)
 
 ## Wichtige Befehle
 ```bash

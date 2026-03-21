@@ -312,7 +312,7 @@
 
   function setUrlCheckStatus(reachable, time) {
     urlDot.className          = 'url-check-dot ' + (reachable ? 'ok' : 'error');
-    urlCheckLabel.textContent = reachable ? 'Erreichbar' : 'Nicht erreichbar';
+    urlCheckLabel.textContent = reachable ? 'Gültig' : 'Ungültig';
     urlCheckLabel.style.color = reachable ? 'var(--status-success)' : 'var(--status-error)';
     if (time) urlCheckTime.textContent = 'Zuletzt geprüft: ' + time;
   }
@@ -350,8 +350,7 @@
       const data = await res.json();
       if (data.success) {
         urlStatus.innerHTML = '<span style="color:var(--status-success); font-size:1.1rem;">✓</span><span style="color:var(--status-success);">URL gespeichert</span>';
-        urlInput.value = '';
-        checkUrl();
+        urlInput.value = ''; window.location.reload();
       } else {
         urlStatus.innerHTML = '<span style="color:var(--status-error); font-size:1.1rem;">✗</span><span style="color:var(--status-error);">' + (data.error ?? 'Fehler') + '</span>';
       }
@@ -369,7 +368,17 @@
   const steps    = [1,2,3,4].map(n => document.getElementById('step-' + n));
   let logoTmpPath = null;
 
-  function showStep(n) { steps.forEach((s, i) => s.classList.toggle('hidden', i !== n - 1)); }
+  function showStep(n) {
+    const allSteps = [...steps, document.getElementById('step-3b'), document.getElementById('step-3b-rembg')].filter(Boolean);
+    allSteps.forEach(s => s.classList.add('hidden'));
+    if (n === '3b') {
+      document.getElementById('step-3b')?.classList.remove('hidden');
+    } else if (n === '3b-rembg') {
+      document.getElementById('step-3b-rembg')?.classList.remove('hidden');
+    } else {
+      steps[n - 1]?.classList.remove('hidden');
+    }
+  }
   function openPopout() {
     backdrop.classList.remove('hidden');
     showStep(1);
@@ -390,14 +399,28 @@
   const bgHex    = document.getElementById('bg-hex');
   bgPicker.addEventListener('input', () => { bgHex.value = bgPicker.value.toUpperCase(); });
   bgHex.addEventListener('input',   () => { if (/^#[0-9A-Fa-f]{6}$/.test(bgHex.value)) bgPicker.value = bgHex.value; });
-  document.getElementById('step1-next').addEventListener('click', () => showStep(2));
+  document.getElementById('step1-next').addEventListener('click', () => {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(bgHex.value)) {
+      bgHex.style.outline = '2px solid var(--status-error)';
+      return;
+    }
+    bgHex.style.outline = '';
+    showStep(2);
+  });
 
   const fgPicker = document.getElementById('fg-picker');
   const fgHex    = document.getElementById('fg-hex');
   fgPicker.addEventListener('input', () => { fgHex.value = fgPicker.value.toUpperCase(); });
   fgHex.addEventListener('input',   () => { if (/^#[0-9A-Fa-f]{6}$/.test(fgHex.value)) fgPicker.value = fgHex.value; });
   document.getElementById('step2-back').addEventListener('click', () => showStep(1));
-  document.getElementById('step2-next').addEventListener('click', () => showStep(3));
+  document.getElementById('step2-next').addEventListener('click', () => {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(fgHex.value)) {
+      fgHex.style.outline = '2px solid var(--status-error)';
+      return;
+    }
+    fgHex.style.outline = '';
+    showStep(3);
+  });
 
   const logoNo         = document.getElementById('logo-no');
   const logoYes        = document.getElementById('logo-yes');
@@ -424,6 +447,171 @@
         if (data.success) { logoTmpPath = data.tmp_name; }
         else { alert(data.error ?? 'Logo-Upload fehlgeschlagen'); return; }
       } catch (_) { alert('Verbindungsfehler beim Logo-Upload'); return; }
+      // Hintergrund entfernen anbieten
+      showStep('3b-rembg');
+      document.getElementById('rembg-skip').onclick = () => {
+        showStep('3b');
+        initLogoPositioner();
+      };
+      document.getElementById('rembg-apply').onclick = async () => {
+        const btn = document.getElementById('rembg-apply');
+        btn.textContent = 'Wird verarbeitet…';
+        btn.disabled = true;
+        try {
+          const res  = await fetch('/zero-trust/api/logo-rembg.php', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ logo_name: logoTmpPath }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            logoTmpPath = data.tmp_name;
+          } else {
+            alert(data.error ?? 'Hintergrundentfernung fehlgeschlagen');
+          }
+        } catch (_) {
+          alert('Verbindungsfehler');
+        }
+        showStep('3b');
+        initLogoPositioner();
+        btn.textContent = 'Hintergrund entfernen';
+        btn.disabled = false;
+      };
+      return;
+    }
+    showStep(4);
+    loadPreview();
+  });
+
+  // ── Logo Positionierung (Step 3b) ─────────────────────
+  let logoPosX   = 0.5; // relative Position 0-1
+  let logoPosY   = 0.5;
+  let logoSizePx = 40;  // Größe in QR-Pixel (von 420px Basis)
+
+  // Finder-Pattern Zonen (in 420px Koordinaten)
+  const FORBIDDEN_ZONES = [
+    { x: 16, y: 16, w: 81, h: 81 },   // oben-links
+    { x: 323, y: 16, w: 81, h: 81 },  // oben-rechts
+    { x: 16, y: 323, w: 81, h: 81 },  // unten-links
+  ];
+
+  function isInForbiddenZone(cx, cy, size) {
+    const half = size / 2;
+    for (const z of FORBIDDEN_ZONES) {
+      if (cx - half < z.x + z.w && cx + half > z.x &&
+          cy - half < z.y + z.h && cy + half > z.y) return true;
+    }
+    return false;
+  }
+
+  function drawLogoCanvas() {
+    const canvas  = document.getElementById('logo-pos-canvas');
+    if (!canvas) return;
+    const ctx     = canvas.getContext('2d');
+    const cw      = canvas.width;
+    const scale   = cw / 420;
+
+    ctx.clearRect(0, 0, cw, cw);
+
+    // QR-Placeholder zeichnen
+    const qrImg = document.getElementById('logo-pos-qr');
+    if (qrImg && qrImg.complete) ctx.drawImage(qrImg, 0, 0, cw, cw);
+
+    // Forbidden Zones – rot mit Hover
+    ctx.fillStyle = 'rgba(220, 38, 38, 0.35)';
+    for (const z of FORBIDDEN_ZONES) {
+      ctx.fillRect(z.x * scale, z.y * scale, z.w * scale, z.h * scale);
+    }
+
+    // Logo zeichnen
+    const logoImg = document.getElementById('logo-pos-img');
+    if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+      const cx   = logoPosX * cw;
+      const cy   = logoPosY * cw;
+      const half = (logoSizePx * scale) / 2;
+      const inZone = isInForbiddenZone(logoPosX * 420, logoPosY * 420, logoSizePx);
+      ctx.globalAlpha = inZone ? 0.4 : 1.0;
+      ctx.drawImage(logoImg, cx - half, cy - half, half * 2, half * 2);
+      ctx.globalAlpha = 1.0;
+      if (inZone) {
+        ctx.strokeStyle = 'rgba(220,38,38,0.9)';
+        ctx.lineWidth   = 2;
+        ctx.strokeRect(cx - half, cy - half, half * 2, half * 2);
+      }
+    }
+  }
+
+  function initLogoPositioner() {
+    const canvas = document.getElementById('logo-pos-canvas');
+    if (!canvas) return;
+    logoPosX = 0.5; logoPosY = 0.5; logoSizePx = 40;
+
+    const slider = document.getElementById('logo-size-slider');
+    if (slider) { slider.value = logoSizePx; document.getElementById('logo-size-val').textContent = logoSizePx + 'px'; }
+
+    // Logo-Bild laden
+    let logoImg = document.getElementById('logo-pos-img');
+    if (!logoImg) {
+      logoImg = new Image();
+      logoImg.id = 'logo-pos-img';
+      logoImg.style.display = 'none';
+      document.body.appendChild(logoImg);
+    }
+    logoImg.onload = drawLogoCanvas;
+    logoImg.src = '/zero-trust/api/logo-preview.php?name=' + logoTmpPath + '&t=' + Date.now();
+
+    // QR-Bild laden
+    let qrImg = document.getElementById('logo-pos-qr');
+    if (!qrImg) {
+      qrImg = new Image();
+      qrImg.id = 'logo-pos-qr';
+      qrImg.style.display = 'none';
+      document.body.appendChild(qrImg);
+    }
+    qrImg.onload = drawLogoCanvas;
+    qrImg.src = '/assets/qr-placeholder/placeholder.png';
+
+    drawLogoCanvas();
+
+    // Drag auf Canvas
+    let dragging = false;
+    canvas.addEventListener('mousedown', () => dragging = true);
+    canvas.addEventListener('mouseup',   () => dragging = false);
+    canvas.addEventListener('mouseleave',() => dragging = false);
+    canvas.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const rect = canvas.getBoundingClientRect();
+      logoPosX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      logoPosY = Math.max(0, Math.min(1, (e.clientY - rect.top)  / rect.height));
+      drawLogoCanvas();
+    });
+
+    // Touch support
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const rect  = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      logoPosX = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+      logoPosY = Math.max(0, Math.min(1, (touch.clientY - rect.top)  / rect.height));
+      drawLogoCanvas();
+    }, { passive: false });
+
+    // Slider
+    if (slider) {
+      slider.addEventListener('input', () => {
+        logoSizePx = parseInt(slider.value);
+        document.getElementById('logo-size-val').textContent = logoSizePx + 'px';
+        drawLogoCanvas();
+      });
+    }
+  }
+
+  document.getElementById('step3b-back').addEventListener('click', () => showStep(3));
+  document.getElementById('step3b-next').addEventListener('click', () => {
+    const inZone = isInForbiddenZone(logoPosX * 420, logoPosY * 420, logoSizePx);
+    if (inZone) {
+      alert('Logo liegt in einer gesperrten Zone. Bitte verschieben.');
+      return;
     }
     showStep(4);
     loadPreview();
@@ -439,7 +627,7 @@
       const res  = await fetch('/zero-trust/api/qr-preview.php', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_name: logoTmpPath }),
+        body:    JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_name: logoTmpPath, logo_x: logoPosX, logo_y: logoPosY, logo_size: logoSizePx }),
       });
       const data = await res.json();
       if (data.preview) {
@@ -459,7 +647,7 @@
       const res  = await fetch('/zero-trust/api/qr-save.php', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_name: logoTmpPath }),
+        body:    JSON.stringify({ fg: fgHex.value, bg: bgHex.value, logo_name: logoTmpPath, logo_x: logoPosX, logo_y: logoPosY, logo_size: logoSizePx }),
       });
       const data = await res.json();
       if (data.success) { closePopout(); window.location.reload(); }
@@ -510,9 +698,9 @@
             pointBorderColor: color,
             pointRadius: 3,
             pointHoverRadius: 5,
-            tension: 0.3,
+            tension: 0,
             spanGaps: false,
-            fill: true,
+            fill: { target: { value: -0.5 }, above: color + '18' },
           }]
         },
         options: {
