@@ -312,7 +312,7 @@
 
   function setUrlCheckStatus(reachable, time) {
     urlDot.className          = 'url-check-dot ' + (reachable ? 'ok' : 'error');
-    urlCheckLabel.textContent = reachable ? 'Erreichbar' : 'Nicht erreichbar';
+    urlCheckLabel.textContent = reachable ? 'Gültig' : 'Ungültig';
     urlCheckLabel.style.color = reachable ? 'var(--status-success)' : 'var(--status-error)';
     if (time) urlCheckTime.textContent = 'Zuletzt geprüft: ' + time;
   }
@@ -350,10 +350,7 @@
       const data = await res.json();
       if (data.success) {
         urlStatus.innerHTML = '<span style="color:var(--status-success); font-size:1.1rem;">✓</span><span style="color:var(--status-success);">URL gespeichert</span>';
-        urlInput.value = '';
-        const hintSpan = document.querySelector('.hint-text .text-soft');
-        if (hintSpan) hintSpan.textContent = url;
-        checkUrl();
+        urlInput.value = ''; window.location.reload();
       } else {
         urlStatus.innerHTML = '<span style="color:var(--status-error); font-size:1.1rem;">✗</span><span style="color:var(--status-error);">' + (data.error ?? 'Fehler') + '</span>';
       }
@@ -392,14 +389,28 @@
   const bgHex    = document.getElementById('bg-hex');
   bgPicker.addEventListener('input', () => { bgHex.value = bgPicker.value.toUpperCase(); });
   bgHex.addEventListener('input',   () => { if (/^#[0-9A-Fa-f]{6}$/.test(bgHex.value)) bgPicker.value = bgHex.value; });
-  document.getElementById('step1-next').addEventListener('click', () => showStep(2));
+  document.getElementById('step1-next').addEventListener('click', () => {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(bgHex.value)) {
+      bgHex.style.outline = '2px solid var(--status-error)';
+      return;
+    }
+    bgHex.style.outline = '';
+    showStep(2);
+  });
 
   const fgPicker = document.getElementById('fg-picker');
   const fgHex    = document.getElementById('fg-hex');
   fgPicker.addEventListener('input', () => { fgHex.value = fgPicker.value.toUpperCase(); });
   fgHex.addEventListener('input',   () => { if (/^#[0-9A-Fa-f]{6}$/.test(fgHex.value)) fgPicker.value = fgHex.value; });
   document.getElementById('step2-back').addEventListener('click', () => showStep(1));
-  document.getElementById('step2-next').addEventListener('click', () => showStep(3));
+  document.getElementById('step2-next').addEventListener('click', () => {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(fgHex.value)) {
+      fgHex.style.outline = '2px solid var(--status-error)';
+      return;
+    }
+    fgHex.style.outline = '';
+    showStep(3);
+  });
 
   const logoNo         = document.getElementById('logo-no');
   const logoYes        = document.getElementById('logo-yes');

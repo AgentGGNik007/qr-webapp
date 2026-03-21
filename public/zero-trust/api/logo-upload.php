@@ -41,7 +41,7 @@ if ($file['size'] > $maxSize) {
     exit;
 }
 
-$tmpDir = __DIR__ . '/../../data/uploads/';
+$tmpDir = __DIR__ . '/../../../data/uploads/';
 $tmpName = 'logo_' . bin2hex(random_bytes(8)) . '_' . time() . '.' . ($mime === 'image/svg+xml' ? 'svg' : 'png');
 $tmpPath = $tmpDir . $tmpName;
 
