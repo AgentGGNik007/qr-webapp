@@ -13,8 +13,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $input  = json_decode(file_get_contents('php://input'), true);
-$fgHex  = $input['fg'] ?? '#000000';
-$bgHex  = $input['bg'] ?? '#FFFFFF';
+$fgHex  = $input['fg']       ?? '#000000';
+$bgHex  = $input['bg']       ?? '#FFFFFF';
+$logoX  = (float)($input['logo_x']   ?? 0.5);
+$logoY  = (float)($input['logo_y']   ?? 0.5);
+$logoSz = (int)($input['logo_size']  ?? 40);
+$logoSz = max(20, min(80, $logoSz));
 $logo   = null;
 
 if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $fgHex) || !preg_match('/^#[0-9A-Fa-f]{6}$/', $bgHex)) {
@@ -36,7 +40,10 @@ try {
         $_ENV['SHLINK_SHORT_URL'] ?? '',
         $fgHex,
         $bgHex,
-        $logo
+        $logo,
+        $logoX,
+        $logoY,
+        $logoSz
     );
 
     // Logo aufräumen

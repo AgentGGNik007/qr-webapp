@@ -13,10 +13,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
-$fgHex = $input['fg'] ?? '#000000';
-$bgHex = $input['bg'] ?? '#FFFFFF';
-$logo  = null;
+$input  = json_decode(file_get_contents('php://input'), true);
+$fgHex  = $input['fg']        ?? '#000000';
+$bgHex  = $input['bg']        ?? '#FFFFFF';
+$logoX  = (float)($input['logo_x']    ?? 0.5);
+$logoY  = (float)($input['logo_y']    ?? 0.5);
+$logoSz = (int)($input['logo_size']   ?? 40);
+$logoSz = max(20, min(80, $logoSz));
+$logo   = null;
 
 if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $fgHex) || !preg_match('/^#[0-9A-Fa-f]{6}$/', $bgHex)) {
     http_response_code(400);
@@ -57,11 +61,35 @@ $builder = new Builder(
     foregroundColor: $fg,
     backgroundColor: $bg,
     roundBlockSizeMode: RoundBlockSizeMode::Margin,
-    logoPath: ($logo && is_file($logo)) ? $logo : null,
-    logoResizeToWidth: ($logo && is_file($logo)) ? 80 : null,
 );
 
 file_put_contents($pngFile, $builder->build()->getString());
+
+// Logo per GD an gewünschter Position einzeichnen
+if ($logo && is_file($logo)) {
+    $qrImg   = imagecreatefrompng($pngFile);
+    $qrW     = imagesx($qrImg);
+    $qrH     = imagesy($qrImg);
+    $logoImg = null;
+    $mime    = mime_content_type($logo);
+    if ($mime === 'image/png')     $logoImg = imagecreatefrompng($logo);
+    elseif ($mime === 'image/svg+xml') {
+        // SVG zu PNG konvertieren nicht möglich ohne ext – überspringen
+    }
+    if ($logoImg) {
+        $cx      = (int)($logoX * $qrW);
+        $cy      = (int)($logoY * $qrH);
+        $half    = (int)($logoSz / 2);
+        $dstX    = $cx - $half;
+        $dstY    = $cy - $half;
+        $srcW    = imagesx($logoImg);
+        $srcH    = imagesy($logoImg);
+        imagecopyresampled($qrImg, $logoImg, $dstX, $dstY, 0, 0, $logoSz, $logoSz, $srcW, $srcH);
+        imagedestroy($logoImg);
+    }
+    imagepng($qrImg, $pngFile);
+    imagedestroy($qrImg);
+}
 
 $base64 = base64_encode(file_get_contents($pngFile));
 @unlink($pngFile);

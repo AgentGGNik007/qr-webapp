@@ -200,10 +200,41 @@ $inviteUrl = getConfig('discord_invite_url');
       </div>
       <div id="logo-upload-wrap" class="logo-upload-wrap">
         <input type="file" id="logo-file" accept="image/png,image/svg+xml">
+        <p class="logo-zone-hint" style="margin-top:0.5rem;">Empfohlen: PNG, max. 500×500px</p>
       </div>
       <div class="popout-footer">
         <button class="btn" id="step3-back" type="button">Zurück</button>
         <button class="btn btn-primary" id="step3-next" type="button">Vorschau</button>
+      </div>
+    </div>
+
+    <div class="popout-step hidden" id="step-3b-rembg">
+      <label class="popout-label">Hintergrund entfernen?</label>
+      <p class="logo-zone-hint">Das Logo wird mit KI analysiert und der Hintergrund automatisch entfernt. Dies kann einige Sekunden dauern.</p>
+      <div class="popout-footer">
+        <button class="btn" id="rembg-skip" type="button">Überspringen</button>
+        <button class="btn btn-primary" id="rembg-apply" type="button">Hintergrund entfernen</button>
+      </div>
+    </div>
+
+    <div class="popout-step hidden" id="step-3b">
+      <label class="popout-label">Logo positionieren</label>
+      <div class="logo-position-wrap">
+        <div class="logo-canvas-wrap">
+          <canvas id="logo-pos-canvas" width="280" height="280"></canvas>
+        </div>
+        <div class="logo-size-wrap">
+          <div class="logo-size-label">
+            <span>Logo-Größe</span>
+            <span id="logo-size-val">40px</span>
+          </div>
+          <input type="range" id="logo-size-slider" class="logo-size-slider" min="20" max="80" value="40" step="1">
+        </div>
+        <p class="logo-zone-hint">Rote Bereiche sind gesperrt – dort darf das Logo nicht platziert werden.</p>
+      </div>
+      <div class="popout-footer">
+        <button class="btn" id="step3b-back" type="button">Zurück</button>
+        <button class="btn btn-primary" id="step3b-next" type="button">Weiter</button>
       </div>
     </div>
 

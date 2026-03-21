@@ -15,7 +15,10 @@ function generateQrCode(
     string $url,
     string $fgHex = '#000000',
     string $bgHex = '#FFFFFF',
-    ?string $logoPath = null
+    ?string $logoPath = null,
+    float $logoX = 0.5,
+    float $logoY = 0.5,
+    int $logoSize = 40
 ): array {
     $qrDir   = __DIR__ . '/../public/assets/qr/';
     $stamp   = date('Ymd_His');
@@ -36,11 +39,29 @@ function generateQrCode(
         foregroundColor: $fg,
         backgroundColor: $bg,
         roundBlockSizeMode: RoundBlockSizeMode::Margin,
-        logoPath: ($logoPath && is_file($logoPath)) ? $logoPath : null,
-        logoResizeToWidth: ($logoPath && is_file($logoPath)) ? 80 : null,
     );
 
     file_put_contents($pngFile, $pngBuilder->build()->getString());
+
+    // Logo per GD an gewünschter Position einzeichnen
+    if ($logoPath && is_file($logoPath)) {
+        $qrImg   = imagecreatefrompng($pngFile);
+        $qrW     = imagesx($qrImg);
+        $logoImg = null;
+        $mime    = mime_content_type($logoPath);
+        if ($mime === 'image/png') $logoImg = imagecreatefrompng($logoPath);
+        if ($logoImg) {
+            $cx   = (int)($logoX * $qrW);
+            $cy   = (int)($logoY * $qrW);
+            $half = (int)($logoSize / 2);
+            $srcW = imagesx($logoImg);
+            $srcH = imagesy($logoImg);
+            imagecopyresampled($qrImg, $logoImg, $cx - $half, $cy - $half, 0, 0, $logoSize, $logoSize, $srcW, $srcH);
+            imagedestroy($logoImg);
+        }
+        imagepng($qrImg, $pngFile);
+        imagedestroy($qrImg);
+    }
 
     // SVG (kein Logo-Support)
     $svgBuilder = new Builder(
