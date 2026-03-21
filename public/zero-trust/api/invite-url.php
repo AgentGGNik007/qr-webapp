@@ -3,15 +3,20 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../../includes/config.php';
 require_once __DIR__ . '/../../../includes/invite-check.php';
+require_once __DIR__ . '/../../../includes/mailer.php';
 
 header('Content-Type: application/json');
 
 // GET – aktuelle URL lesen
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $url = getConfig('discord_invite_url');
+    $url       = getConfig('discord_invite_url');
+    $reachable = $url ? checkInviteUrl($url) : false;
+    if ($url && !$reachable) {
+        sendInviteErrorMail($url);
+    }
     echo json_encode([
         'url'       => $url,
-        'reachable' => $url ? checkInviteUrl($url) : false,
+        'reachable' => $reachable,
     ]);
     exit;
 }

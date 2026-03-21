@@ -7,6 +7,36 @@ use PHPMailer\PHPMailer\Exception;
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/config.php';
 
+function sendInviteErrorMail(string $url): void {
+    $lastSent    = getConfig('error_mail_last_sent');
+    $lastUrl     = getConfig('error_mail_last_url');
+    $now         = time();
+    $urlChanged  = $lastUrl !== $url;
+    $cooldownOk  = empty($lastSent) || ($now - (int)$lastSent) >= 86400;
+
+    if (!$urlChanged && !$cooldownOk) return;
+
+    $sent = sendMail(
+        'Warnung: Discord Invite Link nicht erreichbar oder ungültig',
+        "Die Überprüfung des Discord Invite Links hat einen Fehler ergeben.
+
+" .
+        "URL: " . $url . "
+" .
+        "Zeitpunkt: " . date('d.m.Y H:i:s') . "
+
+" .
+        "Bitte Link im Dashboard aktualisieren:
+" .
+        "https://qr.framenode.net/zero-trust/dashboard/"
+    );
+
+    if ($sent) {
+        setConfig('error_mail_last_sent', (string)$now);
+        setConfig('error_mail_last_url',  $url);
+    }
+}
+
 function sendMail(string $subject, string $body): bool {
     $mail = new PHPMailer(true);
     try {
