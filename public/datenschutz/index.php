@@ -10,7 +10,7 @@ require __DIR__ . '/../../includes/head.php';
 
 <section class="card privacy-card">
   <div class="card-header">
-    <span class="card-subtitle"><strong>Stand:</strong> 18.03.2026</span>
+    <span class="card-subtitle"><strong>Stand:</strong> 21.03.2026</span>
   </div>
 
   <div class="card-body privacy-content">
@@ -90,6 +90,23 @@ require __DIR__ . '/../../includes/head.php';
       Eine mögliche Übermittlung personenbezogener Daten in Drittstaaten
       erfolgt auf Grundlage der EU-Standardvertragsklauseln
       gemäß Art. 46 DSGVO.
+    </p>
+
+    <h3><u>6.3 E-Mail-Versand (Sendinblue SAS, im Folgenden Brevo genannt)</u></h3>
+    <p>
+      Für den Versand interner Systembenachrichtigungen wird der SMTP-Dienst
+      von Sendinblue SAS, 55 rue d'Amsterdam, 75008 Paris, Frankreich,
+      im Folgenden Brevo genannt, eingesetzt.
+    </p>
+    <p>
+      Über diesen Dienst werden ausschließlich technische Warnmeldungen
+      an interne Administratoren versandt. Nutzerdaten oder personenbezogene
+      Daten betroffener Personen werden dabei nicht verarbeitet.
+      Betroffene Personen haben keinerlei Berührungspunkte mit diesem Dienst.
+    </p>
+    <p>
+      Mit Brevo besteht ein Vertrag zur Auftragsverarbeitung
+      gemäß Art. 28 DSGVO.
     </p>
 
     <h2>7. Weiterleitung zu Discord</h2>
