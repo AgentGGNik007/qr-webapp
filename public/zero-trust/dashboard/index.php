@@ -123,7 +123,7 @@ $inviteUrl = getConfig('discord_invite_url');
         <?php else: ?>
           <p class="text-muted">Noch kein QR-Code generiert.</p>
           <button id="btn-generate" class="btn btn-primary" type="button">QR-Code generieren</button>
-	  <p class="qr-privacy-hint">Dieser QR-Code erfasst anonyme Scan-Statistiken. Datenschutz: qr.framenode.net/datenschutz</p>
+	      <p class="qr-privacy-hint">Dieser QR-Code erfasst anonyme Scan-Statistiken. Datenschutz: qr.framenode.net/datenschutz</p>
         <?php endif; ?>
       </div>
     </section>
