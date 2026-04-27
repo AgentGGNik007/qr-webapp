@@ -510,3 +510,16 @@
   border-top: 1px solid var(--border-soft);
   padding-top: 0.75rem;
 }
+
+/* =========================================================
+   QR Privacy Hint
+========================================================= */
+.qr-privacy-hint {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  user-select: all;
+  cursor: text;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 0.75rem;
+}
