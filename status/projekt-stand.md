@@ -1,4 +1,4 @@
-# QR-Webapp Projekt – Stand 18.03.2026
+# QR-Webapp Projekt – Stand 21.03.2026
 
 ## Status: ✅ Abgeschlossen
 
@@ -15,7 +15,7 @@
 │   ├── check-invite.php      # täglich 23:00 – Invite-URL prüfen + E-Mail
 │   └── new-day.php           # täglich 00:01 – neuen Tag in tracking_days eintragen
 ├── config/
-│   └── .env                  # SMTP + Notify + Shlink (www-data, 640, gitignored)
+│   └── .env                  # SMTP + Notify + Shlink + Discord Guild ID (www-data, 640, gitignored)
 ├── data/
 │   ├── app.sqlite            # SQLite DB (www-data, gitignored)
 │   └── uploads/              # temporäre Logo-Uploads
@@ -23,31 +23,35 @@
 │   ├── config.php            # DB-Verbindung + .env Loader
 │   ├── footer.php            # Footer-Include
 │   ├── head.php              # Header-Include (global.css + extraCss[])
-│   ├── invite-check.php      # checkInviteUrl() via cURL
-│   ├── mailer.php            # sendMail() via PHPMailer + Brevo SMTP
+│   ├── invite-check.php      # checkInviteUrl() via Discord API + Guild-ID Validierung
+│   ├── mailer.php            # sendMail() + sendInviteErrorMail() mit 24h URL-Cooldown
 │   └── qr-generator.php      # generateQrCode(), getQrLibrary(), getLatestQr()
 ├── public/
 │   ├── assets/
 │   │   ├── css/
 │   │   │   ├── global.css    # Theme-System, Base, Layout, Cards, Buttons, Icons
-│   │   │   ├── dashboard.css # Dashboard-spezifisches CSS
+│   │   │   ├── dashboard.css # Dashboard-spezifisches CSS inkl. Logo-Positionierung
 │   │   │   ├── bib.css       # QR-Bibliothek CSS
 │   │   │   ├── privacy.css   # Datenschutz + Interessensabwägung CSS
 │   │   │   └── error.css     # Fehlerseite CSS (join/index.php)
 │   │   ├── js/
 │   │   │   ├── app.js        # Theme-Toggle (Cycle + Footer-Dropdown)
-│   │   │   └── dashboard.js  # Dashboard JS (Chart, QR-Popout, URL-Card)
+│   │   │   └── dashboard.js  # Dashboard JS (Chart, QR-Popout, Logo-Positionierung, URL-Card)
 │   │   └── qr/               # generierte QR-Codes (PNG + SVG, max 10)
+│   ├── assets/qr-placeholder/
+│   │   └── placeholder.png   # fixer Test-QR für Logo-Positionierungs-Modal
 │   ├── datenschutz/index.php # Datenschutzerklärung (öffentlich)
 │   ├── join/index.php        # URL-Check + 302 Redirect auf Discord + E-Mail bei Fehler
 │   ├── healthz.txt           # Health-Check (öffentlich)
 │   └── zero-trust/
 │       ├── api/
-│       │   ├── invite-url.php    # GET/POST Discord Invite URL
-│       │   ├── logo-upload.php   # POST Logo-Upload (PNG/SVG, finfo MIME-Check)
+│       │   ├── invite-url.php    # GET/POST Discord Invite URL (GET löst auch Mail aus)
+│       │   ├── logo-upload.php   # POST Logo-Upload (PNG/SVG→PNG via rsvg-convert)
+│       │   ├── logo-preview.php  # GET Logo-Vorschau aus uploads/
+│       │   ├── logo-rembg.php    # POST Hintergrundentfernung via rembg (KI)
 │       │   ├── qr-library.php    # GET letzte 10 QR-Codes
-│       │   ├── qr-preview.php    # POST QR-Vorschau (base64, Hex-Validierung)
-│       │   ├── qr-save.php       # POST QR-Code final speichern
+│       │   ├── qr-preview.php    # POST QR-Vorschau (base64, Logo-Position per GD)
+│       │   ├── qr-save.php       # POST QR-Code final speichern (Logo-Position per GD)
 │       │   └── stats.php         # GET Shlink-Statistik + tracking_days
 │       ├── bib/index.php             # QR-Bibliothek (letzte 10 QR-Codes)
 │       ├── dashboard/index.php       # Dashboard (Statistik, QR-Card, URL-Card)
@@ -64,24 +68,34 @@
 - endroid/qr-code 6.x für QR-Generierung (GD Extension aktiv)
 - PHPMailer + Brevo SMTP für E-Mail-Benachrichtigungen
 - Chart.js 4.4.1 (CDN, SRI-Hash) für Statistik-Diagramm
+- rembg 2.0.73 (Python, CPU) für KI-Hintergrundentfernung
+- rsvg-convert 2.58.0 für SVG→PNG Konvertierung
 
 ## Datenbank (app.sqlite)
 ### Tabelle `config`
 - `key` TEXT PRIMARY KEY
 - `value` TEXT NOT NULL
-- Einträge: `discord_invite_url`, `join_error_mail_last_sent`, `footer_git_date_cache`, `footer_git_date_ts`
+- Einträge: `discord_invite_url`, `footer_git_date_cache`, `footer_git_date_ts`, `error_mail_last_sent`, `error_mail_last_url`
 
 ### Tabelle `tracking_days`
 - `date` TEXT PRIMARY KEY (Format: YYYY-MM-DD)
-- `created_at` TEXT (wird seit 18.03.2026 befüllt)
+- `created_at` TEXT (wird seit 21.03.2026 befüllt)
 - Einträge ab 01.03.2026, täglich per Cron ergänzt
 - Rolling Window: 24 Monate (älteste werden automatisch gelöscht)
 
 ## Funktionen (abgeschlossen)
-- QR-Code Generierung (PNG + SVG, 400px, Popout-Wizard: BG-Farbe → FG-Farbe → Logo → Vorschau → Übernehmen)
+- QR-Code Generierung (PNG + SVG, 420px)
+  - Wizard: BG-Farbe → FG-Farbe → Logo (optional) → Hintergrund entfernen (KI) → Logo positionieren → Vorschau → Speichern
+  - Logo-Positionierung: Drag & Drop auf Canvas, Größen-Slider (20-80px), Finder-Pattern Blacklist-Zonen (rot bei Hover)
+  - Logo-Upload: PNG + SVG (SVG wird automatisch zu PNG konvertiert), max 2MB
+  - KI-Hintergrundentfernung via rembg (optional, überspringbar)
 - QR-Code Bibliothek (max. 10, mit Zeitstempel, Download PNG/SVG)
 - `join/index.php` → URL-Check → 302 Redirect auf Discord Invite URL + E-Mail bei Fehler
-- Fehlerseite bei nicht erreichbarer URL (kein Header/Footer, zentriert) + E-Mail
+- Fehlerseite bei nicht erreichbarer URL (kein Header/Footer, zentriert)
+- Discord Invite URL Validierung via Discord API (Guild-ID Prüfung, nicht nur HTTP-Status)
+- E-Mail-Benachrichtigung mit 24h URL-gebundenem Cooldown (alle Auslöser zentral in `sendInviteErrorMail()`)
+  - Auslöser: join/index.php, cron/check-invite.php, invite-url.php GET (Jetzt prüfen)
+  - Reset des Cooldowns wenn URL sich ändert
 - Cron: tägliche URL-Prüfung um 23:00 + E-Mail bei Fehler
 - Cron: neuer tracking_day täglich um 00:01 (inkl. created_at)
 - Statistik-Dashboard mit echten Shlink-Daten
@@ -96,6 +110,7 @@
 - Admin-Login über Cloudflare Zero Trust (Google OIDC, 2 erlaubte E-Mails)
 - Datenschutzseite öffentlich erreichbar
 - Interessensabwägung nur per Zero Trust erreichbar
+- 4 Themes: light, grey, dark, contrast (WCAG AAA)
 
 ## Routen
 | Pfad | Zugang |
@@ -154,6 +169,7 @@ SMTP_FROM_NAME
 NOTIFY_EMAIL
 SHLINK_API_KEY
 SHLINK_SHORT_URL
+DISCORD_GUILD_ID
 ```
 
 ## Cron-Jobs (www-data)
@@ -170,16 +186,16 @@ SHLINK_SHORT_URL
 - Log-Format: nur Timestamp, Request, Status, Bytes
 - Shlink mit `ANONYMIZE_REMOTE_ADDR=true`
 - API-Endpunkte unter `/zero-trust/api/*` – vollständig hinter Zero Trust
-- Hex-Validierung bei QR-Farben (qr-preview.php, qr-save.php)
-- MIME-Type Prüfung per `finfo_file()` bei Logo-Upload (nur PNG + SVG erlaubt)
-- Shlink API-Key aus `.env` (nicht mehr hardcodiert)
+- Hex-Validierung bei QR-Farben (Frontend + Backend)
+- MIME-Type Prüfung per `finfo_file()` bei Logo-Upload
+- Discord Invite Validierung via Guild-ID (Discord API)
+- Shlink API-Key aus `.env`
 - Chart.js CDN mit SRI-Hash abgesichert
-- Gilt für: `qr.framenode.net` und `shlink.qr.framenode.net`
 
 ## CSS-System
 - Aufgeteilt in seitenspezifische Dateien – jede Page lädt nur was sie braucht
 - `global.css` – Theme-System, Base, Layout, Cards, Buttons, Icons, Theme-Menu
-- `dashboard.css` – Dashboard, Stats, Chart, Drum-Roll, Popout, URL-Card, Color-Picker
+- `dashboard.css` – Dashboard, Stats, Chart, Drum-Roll, Popout, URL-Card, Color-Picker, Logo-Positionierung
 - `bib.css` – QR-Bibliothek Grid und Items
 - `privacy.css` – Datenschutz + Interessensabwägung
 - `error.css` – Fehlerseite (join/index.php)
@@ -219,24 +235,6 @@ SHLINK_SHORT_URL
 - Accent: `#00E5FF` / Hover `#80F0FF` / Focus `#FFD600`
 - Accent-Text: `#000000`
 
-## Code Reviews (18.03.2026)
-Mehrere vollständige Code-Reviews durchgeführt. Alle gefundenen Bugs behoben:
-- API-Key + Shlink-URL aus Code in `.env` ausgelagert
-- Hex-Validierung für QR-Farben eingebaut
-- MIME-Type Prüfung bei Logo-Upload auf serverseitig umgestellt
-- `session_id()` Bug in qr-preview gefixt
-- `vendor/autoload.php` explizit in qr-preview eingebunden (danach bereinigt)
-- Shlink-Slug `join` → `j` korrigiert
-- Discord-Regex um Bindestriche erweitert
-- `logoPath` null statt leer
-- Logo-Upload: kein Serverpfad in API-Response
-- `filemtime()` Pfade in dashboard/index.php korrigiert
-- Chart-Design: Farben theme-basiert, gerade Linien, 0-Linie, Fill, Theme-Wechsel
-- Vergleichs-Chart: Design mit Hauptchart angeglichen (tension, fill)
-- `qr-preview.php`: hardcodierte URL → `$_ENV['SHLINK_SHORT_URL']`
-- `new-day.php`: `created_at` wird jetzt korrekt befüllt
-- Doppelter autoload in `qr-preview.php` entfernt
-
 ## Offene Punkte
 - [ ] QR-Code Download: zwei Varianten (mit Infotext und ohne) – nach Team-Absprache
 
@@ -272,8 +270,8 @@ curl -s https://shlink.qr.framenode.net/rest/v3/short-urls \
 ## Datenschutz
 - AV-Vertrag mit Contabo abgeschlossen
 - Cloudflare DPA gilt automatisch (Self-Service Plan)
-- Brevo DPA vorhanden
+- Brevo (Sendinblue SAS) DPA vorhanden – nur internes Alarmsystem, keine Nutzerdaten
 - Verantwortlicher: Niklas Rühl
-- Datenschutzerklärung: `qr.framenode.net/datenschutz/` (Stand: 18.03.2026)
+- Datenschutzerklärung: `qr.framenode.net/datenschutz/` (Stand: 21.03.2026)
 - Interessensabwägung: `qr.framenode.net/zero-trust/interessensabwaegung/`
 - Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO
